@@ -14,14 +14,22 @@ public class KioskController : Controller
         _context = context;
     }
 
+    // -------------------------
+    // Item lookup
     // GET: /Kiosk
+    // -------------------------
+
     [HttpGet]
     public IActionResult Index()
     {
         return View(new KioskSearchViewModel());
     }
 
+    // -------------------------
+    // Item lookup
     // POST: /Kiosk
+    // -------------------------
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Index(KioskSearchViewModel model)
@@ -39,6 +47,44 @@ public class KioskController : Controller
 
         model.SearchPerformed = true;
         model.Item = item;
+
+        return View(model);
+    }
+
+    // -------------------------
+    // Borrower card lookup
+    // GET: /Kiosk/Borrower
+    // -------------------------
+
+    [HttpGet]
+    public IActionResult Borrower()
+    {
+        return View(new KioskBorrowerViewModel());
+    }
+
+    // -------------------------
+    // Borrower card lookup
+    // POST: /Kiosk/Borrower
+    // -------------------------
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Borrower(KioskBorrowerViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var cardNumber = model.LibraryCardNumber.Trim();
+
+        var borrower = await _context.Borrowers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                b => b.LibraryCardNumber == cardNumber);
+
+        model.SearchPerformed = true;
+        model.Borrower = borrower;
 
         return View(model);
     }
