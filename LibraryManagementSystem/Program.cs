@@ -27,6 +27,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IFineCalculator, FineCalculator>();
 builder.Services.AddScoped<IBorrowerEligibilityService, BorrowerEligibilityService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 builder.Services.AddHostedService<OverdueProcessingService>();
 
@@ -53,6 +55,10 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
+
+    app.UseSwagger();
+    app.UseSwaggerUI();
+
 }
 else
 {
@@ -66,6 +72,8 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
+app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",
