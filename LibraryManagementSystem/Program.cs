@@ -1,3 +1,4 @@
+
 using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Services;
 using Microsoft.AspNetCore.Identity;
@@ -24,14 +25,25 @@ builder.Services
 
 builder.Services.AddControllersWithViews();
 
+// Existing library management services
 builder.Services.AddScoped<IFineCalculator, FineCalculator>();
 builder.Services.AddScoped<IBorrowerEligibilityService, BorrowerEligibilityService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+
+// Shereena: Automated Email/SMS Notification Service
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
+// Shereena: Digital Reservation and Waitlist Service
+builder.Services.AddScoped<IReservationService, ReservationService>();
+
+// API and Swagger services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Existing automated overdue processing
 builder.Services.AddHostedService<OverdueProcessingService>();
 
+// Existing email services
 builder.Services.AddTransient<IEmailSender, DevelopmentEmailSender>();
 builder.Services.AddTransient<IEmailSender<IdentityUser>, DevelopmentEmailSender>();
 
@@ -57,7 +69,6 @@ if (app.Environment.IsDevelopment())
 
     app.UseSwagger();
     app.UseSwaggerUI();
-
 }
 else
 {

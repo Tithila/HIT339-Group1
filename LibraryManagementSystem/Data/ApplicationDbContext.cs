@@ -1,10 +1,12 @@
-﻿using LibraryManagementSystem.Models;
+﻿
+using LibraryManagementSystem.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryManagementSystem.Data
 {
-    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    public class ApplicationDbContext(
+        DbContextOptions<ApplicationDbContext> options)
         : IdentityDbContext(options)
     {
         public DbSet<Item> Items { get; set; }
@@ -27,6 +29,12 @@ namespace LibraryManagementSystem.Data
 
         public DbSet<ReturnInspection> ReturnInspections { get; set; }
 
+        // Shereena: Automated Notifications
+        public DbSet<NotificationLog> NotificationLogs { get; set; }
+
+        // Shereena: Digital Reservation and Waitlist
+        public DbSet<Reservation> Reservations { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -39,6 +47,34 @@ namespace LibraryManagementSystem.Data
                 .HasIndex(b => b.LibraryCardNumber)
                 .IsUnique()
                 .HasFilter("[LibraryCardNumber] IS NOT NULL");
+
+            // Prevent deleting borrowers or items that
+            // have reservation history.
+            builder.Entity<Reservation>()
+                .HasOne(r => r.Item)
+                .WithMany()
+                .HasForeignKey(r => r.ItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Reservation>()
+                .HasOne(r => r.Borrower)
+                .WithMany()
+                .HasForeignKey(r => r.BorrowerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Reservation>()
+                .HasIndex(r => new
+                {
+                    r.ItemId,
+                    r.Status,
+                    r.RequestedDate
+                });
+
+            builder.Entity<NotificationLog>()
+                .HasOne(n => n.Borrower)
+                .WithMany()
+                .HasForeignKey(n => n.BorrowerId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

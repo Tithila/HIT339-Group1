@@ -1,0 +1,40 @@
+﻿@model IEnumerable<LibraryManagementSystem.Models.Reservation>
+
+@{
+    ViewData["Title"] = "Reservation Waitlist";
+    int position = 1;
+}
+
+<h1>Reservation Waitlist</h1>
+
+<h4>@ViewBag.ItemName</h4>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Queue Position</th>
+            <th>Borrower</th>
+            <th>Requested Date</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var reservation in Model)
+        {
+            <tr>
+                <td>@position</td>
+                <td>@reservation.Borrower?.FullName</td>
+                <td>
+                    @reservation.RequestedDate.ToString("dd MMM yyyy HH:mm")
+                </td>
+                <td>@reservation.Status</td>
+            </tr>
+
+            position++;
+        }
+    </tbody>
+</table>
+
+<a asp-action="Index" class="btn btn-secondary">
+    Back to Reservations
+</a>
