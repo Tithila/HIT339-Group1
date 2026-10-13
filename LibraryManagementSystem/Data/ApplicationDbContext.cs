@@ -38,6 +38,14 @@ namespace LibraryManagementSystem.Data
                 .WithMany(b => b.Items)
                 .HasForeignKey(i => i.BranchId)
                 .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<Item>()
+                .HasIndex(i => i.LibraryCode)
+                .IsUnique();
+
+            builder.Entity<Borrower>()
+                .HasIndex(b => b.LibraryCardNumber)
+                .IsUnique()
+                .HasFilter("[LibraryCardNumber] IS NOT NULL");
         }
     }
 }

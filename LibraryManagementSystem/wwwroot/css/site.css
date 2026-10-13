@@ -29,3 +29,76 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+/* Self-service kiosk accessibility modes */
+
+.kiosk-large-text {
+    font-size: 1.25rem;
+}
+
+    .kiosk-large-text h1,
+    .kiosk-large-text h2,
+    .kiosk-large-text h3 {
+        font-size: 1.4em;
+    }
+
+    .kiosk-large-text .form-control,
+    .kiosk-large-text .btn {
+        font-size: 1.2em;
+    }
+
+.kiosk-high-contrast {
+    background-color: #000;
+    color: #fff;
+    padding: 1.5rem;
+    border-radius: 1rem;
+}
+
+    .kiosk-high-contrast .card,
+    .kiosk-high-contrast .alert {
+        background-color: #000;
+        color: #fff;
+        border: 2px solid #fff !important;
+    }
+
+    .kiosk-high-contrast .text-muted {
+        color: #fff !important;
+    }
+
+    .kiosk-high-contrast hr {
+        border-color: #fff;
+        opacity: 1;
+    }
+
+    .kiosk-high-contrast .form-control {
+        background-color: #000;
+        color: #fff;
+        border: 2px solid #fff;
+    }
+
+        .kiosk-high-contrast .form-control:focus {
+            background-color: #000;
+            color: #fff;
+            border-color: #fff;
+            box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+        }
+
+        .kiosk-high-contrast .form-control::placeholder {
+            color: #ddd;
+        }
+
+    .kiosk-high-contrast .btn-primary {
+        background-color: #fff;
+        color: #000;
+        border-color: #fff;
+    }
+
+    .kiosk-high-contrast .btn-outline-secondary {
+        color: #fff;
+        border-color: #fff;
+    }
+
+        .kiosk-high-contrast .btn-outline-secondary:hover {
+            background-color: #fff;
+            color: #000;
+        }

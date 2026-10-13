@@ -101,26 +101,50 @@ public static class LibraryDataSeeder
         // Seed Borrowers
         // -------------------------
 
-        if (!await context.Borrowers.AnyAsync(b => b.Email == "sarah@example.com"))
+        var sarah = await context.Borrowers
+            .FirstOrDefaultAsync(b => b.Email == "sarah@example.com");
+
+        if (sarah == null)
         {
             context.Borrowers.Add(new Borrower
             {
                 FullName = "Sarah Lee",
                 Email = "sarah@example.com",
                 Phone = "0411111111",
+                LibraryCardNumber = "LC-7A3F92D1",
                 IsSuspended = false
             });
         }
+        else if (string.IsNullOrWhiteSpace(sarah.LibraryCardNumber))
+        {
+            sarah.LibraryCardNumber = "LC-7A3F92D1";
+        }
 
-        if (!await context.Borrowers.AnyAsync(b => b.Email == "david@example.com"))
+        var david = await context.Borrowers
+            .FirstOrDefaultAsync(b => b.Email == "david@example.com");
+
+        if (david == null)
         {
             context.Borrowers.Add(new Borrower
             {
                 FullName = "David Brown",
                 Email = "david@example.com",
                 Phone = "0422222222",
+                LibraryCardNumber = "LC-4C815B20",
                 IsSuspended = false
             });
+        }
+        else if (string.IsNullOrWhiteSpace(david.LibraryCardNumber))
+        {
+            david.LibraryCardNumber = "LC-4C815B20";
+        }
+
+        var john = await context.Borrowers
+            .FirstOrDefaultAsync(b => b.Email == "john@example.com");
+
+        if (john != null && string.IsNullOrWhiteSpace(john.LibraryCardNumber))
+        {
+            john.LibraryCardNumber = "LC-91B7D4E2";
         }
 
         // -------------------------
