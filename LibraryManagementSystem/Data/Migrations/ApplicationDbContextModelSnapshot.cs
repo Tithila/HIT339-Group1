@@ -75,6 +75,10 @@ namespace LibraryManagementSystem.Data.Migrations
                     b.Property<bool>("IsSuspended")
                         .HasColumnType("bit");
 
+                    b.Property<string>("LibraryCardNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -83,6 +87,10 @@ namespace LibraryManagementSystem.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LibraryCardNumber")
+                        .IsUnique()
+                        .HasFilter("[LibraryCardNumber] IS NOT NULL");
 
                     b.ToTable("Borrowers");
                 });

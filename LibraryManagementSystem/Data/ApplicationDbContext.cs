@@ -26,5 +26,19 @@ namespace LibraryManagementSystem.Data
         public DbSet<ItemRequest> ItemRequests { get; set; }
 
         public DbSet<ReturnInspection> ReturnInspections { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+
+            builder.Entity<Item>()
+                .HasIndex(i => i.LibraryCode)
+                .IsUnique();
+
+            builder.Entity<Borrower>()
+                .HasIndex(b => b.LibraryCardNumber)
+                .IsUnique()
+                .HasFilter("[LibraryCardNumber] IS NOT NULL");
+        }
     }
 }
