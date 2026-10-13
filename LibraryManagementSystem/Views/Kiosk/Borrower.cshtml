@@ -16,6 +16,7 @@
         </p>
 
         <div class="d-flex justify-content-center gap-2 flex-wrap">
+
             <button type="button"
                     class="btn btn-outline-secondary"
                     onclick="setKioskMode('standard')">
@@ -33,6 +34,7 @@
                     onclick="setKioskMode('contrast')">
                 High Contrast
             </button>
+
         </div>
     </div>
 
@@ -56,8 +58,10 @@
                             </label>
 
                             <input asp-for="LibraryCardNumber"
+                                   id="libraryCardInput"
                                    class="form-control form-control-lg"
-                                   placeholder="Example: LC-7A3F92D1"
+                                   placeholder="Scan card or enter number"
+                                   autocomplete="off"
                                    autofocus />
 
                             <span asp-validation-for="LibraryCardNumber"
@@ -101,6 +105,7 @@
                             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
 
                                 <div>
+
                                     <h2 class="fw-bold mb-1">
                                         @Model.Borrower.FullName
                                     </h2>
@@ -108,9 +113,11 @@
                                     <div class="text-muted">
                                         @Model.Borrower.LibraryCardNumber
                                     </div>
+
                                 </div>
 
                                 <div>
+
                                     @if (Model.Borrower.IsSuspended)
                                     {
                                         <span class="badge bg-danger fs-6 px-3 py-2">
@@ -123,6 +130,7 @@
                                             Active
                                         </span>
                                     }
+
                                 </div>
 
                             </div>
@@ -131,6 +139,7 @@
 
                             <div class="mb-3">
                                 <strong>Email</strong>
+
                                 <p class="text-muted mb-0">
                                     @Model.Borrower.Email
                                 </p>
@@ -138,6 +147,7 @@
 
                             <div class="mb-3">
                                 <strong>Phone</strong>
+
                                 <p class="text-muted mb-0">
                                     @Model.Borrower.Phone
                                 </p>
@@ -147,12 +157,17 @@
                             {
                                 <div class="alert alert-danger mt-4 mb-0">
 
-                                    <strong>Borrowing unavailable</strong>
+                                    <strong>
+                                        Borrowing unavailable
+                                    </strong>
 
                                     <div class="mt-2">
-                                        @(string.IsNullOrWhiteSpace(Model.Borrower.SuspensionReason)
+
+                                        @(string.IsNullOrWhiteSpace(
+                                            Model.Borrower.SuspensionReason)
                                             ? "This library card is currently suspended."
                                             : Model.Borrower.SuspensionReason)
+
                                     </div>
 
                                 </div>
@@ -161,7 +176,9 @@
                             {
                                 <div class="alert alert-success mt-4">
 
-                                    <strong>Borrower verified.</strong>
+                                    <strong>
+                                        Borrower verified.
+                                    </strong>
 
                                     <div class="mt-2">
                                         You can continue to item checkout.
@@ -188,13 +205,17 @@
 </div>
 
 @section Scripts {
+
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
     <script>
+
         function setKioskMode(mode) {
-            const page = document.getElementById('kioskPage');
+
+            const page =
+                document.getElementById('kioskPage');
 
             page.classList.remove(
                 'kiosk-large-text',
@@ -212,12 +233,24 @@
             localStorage.setItem('kioskMode', mode);
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const savedMode = localStorage.getItem('kioskMode');
+        document.addEventListener(
+            'DOMContentLoaded',
+            function () {
 
-            if (savedMode) {
-                setKioskMode(savedMode);
-            }
-        });
+                const savedMode =
+                    localStorage.getItem('kioskMode');
+
+                if (savedMode) {
+                    setKioskMode(savedMode);
+                }
+
+                const input =
+                    document.getElementById('libraryCardInput');
+
+                if (input) {
+                    input.focus();
+                }
+            });
+
     </script>
 }
