@@ -1,0 +1,191 @@
+﻿@model LibraryManagementSystem.Models.PublicSearchViewModel
+
+@{
+    ViewData["Title"] = "Search Library";
+}
+
+<div class="container py-4">
+
+    <div class="mb-4">
+        <h1 class="fw-bold mb-1">Search Library</h1>
+        <p class="text-muted mb-0">
+            Search the catalogue by name, library code, item type, or availability.
+        </p>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card-body p-4">
+
+            <form method="get"
+                  asp-action="Search"
+                  class="row g-3 align-items-end">
+
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">
+                        Search
+                    </label>
+
+                    <input type="text"
+                           name="searchTerm"
+                           value="@Model.SearchTerm"
+                           class="form-control"
+                           placeholder="Name, code or description" />
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">
+                        Item Type
+                    </label>
+
+                    <select name="itemType"
+                            class="form-select">
+
+                        <option value="">All Types</option>
+
+                        <option value="Book"
+                                selected="@(Model.ItemType == "Book")">
+                            Book
+                        </option>
+
+                        <option value="Music"
+                                selected="@(Model.ItemType == "Music")">
+                            Music
+                        </option>
+
+                        <option value="Toy"
+                                selected="@(Model.ItemType == "Toy")">
+                            Toy
+                        </option>
+
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">
+                        Status
+                    </label>
+
+                    <select name="status"
+                            class="form-select">
+
+                        <option value="">All Statuses</option>
+
+                        @foreach (var status in Enum.GetValues<LibraryManagementSystem.Models.ItemStatus>())
+                        {
+                            <option value="@status"
+                                    selected="@(Model.Status == status)">
+                                @status
+                            </option>
+                        }
+
+                    </select>
+                </div>
+
+                <div class="col-md-1">
+                    <button type="submit"
+                            class="btn btn-primary w-100">
+                        Search
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+    @if (Model.Results.Count == 0)
+    {
+        <div class="alert alert-info shadow-sm border-0 rounded-4">
+            No items found matching your search.
+        </div>
+    }
+    else
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-semibold mb-0">
+                Search Results
+            </h4>
+
+            <span class="text-muted">
+                @Model.Results.Count item(s) found
+            </span>
+        </div>
+
+        <div class="row g-4">
+
+            @foreach (var item in Model.Results)
+            {
+                <div class="col-12 col-md-6 col-lg-4">
+
+                    <div class="card shadow-sm border-0 rounded-4 h-100">
+
+                        <div class="card-body p-4">
+
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+
+                                <h5 class="fw-bold mb-0">
+                                    @item.Name
+                                </h5>
+
+                                @if (item.Status == LibraryManagementSystem.Models.ItemStatus.Available)
+                                {
+                                    <span class="badge bg-success">
+                                        Available
+                                    </span>
+                                }
+                                else if (item.Status == LibraryManagementSystem.Models.ItemStatus.Borrowed)
+                                {
+                                    <span class="badge bg-primary">
+                                        Borrowed
+                                    </span>
+                                }
+                                else if (item.Status == LibraryManagementSystem.Models.ItemStatus.Damaged)
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        Damaged
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">
+                                        Destroyed
+                                    </span>
+                                }
+
+                            </div>
+
+                            <p class="text-muted mb-4">
+                                @item.Description
+                            </p>
+
+                            <div class="mb-2">
+                                <span class="text-muted small">
+                                    LIBRARY CODE
+                                </span>
+
+                                <div class="fw-semibold">
+                                    @item.LibraryCode
+                                </div>
+                            </div>
+
+                            <div>
+                                <span class="text-muted small">
+                                    ITEM TYPE
+                                </span>
+
+                                <div class="fw-semibold">
+                                    @item.GetType().Name
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+    }
+
+</div>

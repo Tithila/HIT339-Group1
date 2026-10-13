@@ -1,0 +1,128 @@
+﻿@model LibraryManagementSystem.Models.BorrowItemViewModel
+
+@{
+    ViewData["Title"] = "Borrow Item";
+}
+
+<div class="container py-4">
+
+    <div class="mb-4">
+        <h1 class="fw-bold mb-1">Borrow Item</h1>
+        <p class="text-muted mb-0">
+            Issue an available library item to a borrower.
+        </p>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success shadow-sm border-0 rounded-4">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+
+                    <form asp-action="Borrow" method="post">
+
+                        <div asp-validation-summary="ModelOnly"
+                             class="text-danger mb-3">
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="LibraryCode"
+                                   class="form-label fw-semibold">
+                            </label>
+
+                            <input asp-for="LibraryCode"
+                                   class="form-control"
+                                   placeholder="Example: BK001" />
+
+                            <span asp-validation-for="LibraryCode"
+                                  class="text-danger">
+                            </span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="BorrowerId"
+                                   class="form-label fw-semibold">
+                            </label>
+
+                            <select asp-for="BorrowerId"
+                                    asp-items="ViewBag.Borrowers"
+                                    class="form-select">
+
+                                <option value="">
+                                    -- Select Borrower --
+                                </option>
+
+                            </select>
+
+                            <span asp-validation-for="BorrowerId"
+                                  class="text-danger">
+                            </span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="DueDate"
+                                   class="form-label fw-semibold">
+                            </label>
+
+                            <input asp-for="DueDate"
+                                   class="form-control" />
+
+                            <span asp-validation-for="DueDate"
+                                  class="text-danger">
+                            </span>
+                        </div>
+
+                        <button type="submit"
+                                class="btn btn-primary px-4">
+                            Borrow Item
+                        </button>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-lg-5 mt-4 mt-lg-0">
+
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-body p-4">
+
+                    <h4 class="fw-semibold mb-3">
+                        Borrowing Check
+                    </h4>
+
+                    <p class="text-muted">
+                        The system checks that the item is currently available before creating the loan.
+                    </p>
+
+                    <p class="text-muted">
+                        Suspended borrowers cannot borrow new items.
+                    </p>
+
+                    <p class="text-muted mb-0">
+                        Once the loan is created, the item status automatically changes to
+                        <strong>Borrowed</strong>.
+                    </p>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

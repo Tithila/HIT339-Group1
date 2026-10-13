@@ -1,0 +1,191 @@
+﻿@model IEnumerable<LibraryManagementSystem.Models.ItemRequest>
+
+@{
+    ViewData["Title"] = "Item Requests";
+}
+
+<div class="container py-4">
+
+    <div class="mb-4">
+        <h1 class="fw-bold mb-1">Public Item Requests</h1>
+        <p class="text-muted mb-0">
+            Review item suggestions submitted through the public library portal.
+        </p>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4 text-center">
+
+                <h4 class="fw-semibold mb-2">
+                    No Item Requests
+                </h4>
+
+                <p class="text-muted mb-0">
+                    There are currently no public item suggestions to review.
+                </p>
+
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-0">
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle mb-0">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th class="px-4 py-3">Title</th>
+                                <th class="py-3">Type</th>
+                                <th class="py-3">Requester</th>
+                                <th class="py-3">Date</th>
+                                <th class="py-3">Status</th>
+                                <th class="py-3">Manager Notes</th>
+                                <th class="py-3 text-end pe-4">Action</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            @foreach (var request in Model)
+                            {
+                                <tr>
+
+                                    <td class="px-4 py-3">
+                                        <div class="fw-semibold">
+                                            @request.Title
+                                        </div>
+                                    </td>
+
+                                    <td class="py-3">
+                                        <span class="badge bg-light text-dark border">
+                                            @request.Type
+                                        </span>
+                                    </td>
+
+                                    <td class="py-3">
+                                        @request.RequesterEmail
+                                    </td>
+
+                                    <td class="py-3">
+                                        @request.RequestedDate.ToString("dd/MM/yyyy")
+                                    </td>
+
+                                    <td class="py-3">
+
+                                        @if (request.Status == "Pending")
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                Pending
+                                            </span>
+                                        }
+                                        else if (request.Status == "Approved")
+                                        {
+                                            <span class="badge bg-success">
+                                                Approved
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">
+                                                Rejected
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                    <td class="py-3" style="min-width:240px;">
+
+                                        @if (request.Status == "Pending")
+                                        {
+                                            <input type="text"
+                                                   id="notes-@request.Id"
+                                                   class="form-control"
+                                                   placeholder="Optional manager note" />
+                                        }
+                                        else
+                                        {
+                                            @if (string.IsNullOrWhiteSpace(request.ManagerNotes))
+                                            {
+                                                <span class="text-muted">
+                                                    No notes
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                @request.ManagerNotes
+                                            }
+                                        }
+
+                                    </td>
+
+                                    <td class="py-3 text-end pe-4"
+                                        style="min-width:130px;">
+
+                                        @if (request.Status == "Pending")
+                                        {
+                                            <form asp-action="Approve"
+                                                  method="post"
+                                                  class="mb-2"
+                                                  onsubmit="this.managerNotes.value =
+                                                document.getElementById('notes-@request.Id').value;">
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@request.Id" />
+
+                                                <input type="hidden"
+                                                       name="managerNotes" />
+
+                                                <button type="submit"
+                                                        class="btn btn-success btn-sm w-100">
+                                                    Approve
+                                                </button>
+                                            </form>
+
+                                            <form asp-action="Reject"
+                                                  method="post"
+                                                  onsubmit="this.managerNotes.value =
+                                                document.getElementById('notes-@request.Id').value;">
+
+                                                <input type="hidden"
+                                                       name="id"
+                                                       value="@request.Id" />
+
+                                                <input type="hidden"
+                                                       name="managerNotes" />
+
+                                                <button type="submit"
+                                                        class="btn btn-outline-danger btn-sm w-100">
+                                                    Reject
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">
+                                                Reviewed
+                                            </span>
+                                        }
+
+                                    </td>
+
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+        </div>
+    }
+
+</div>

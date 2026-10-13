@@ -1,0 +1,76 @@
+@page
+@model LoginWith2faModel
+
+@{
+    ViewData["Title"] = "Two-factor authentication";
+}
+
+<h1>Two-factor authentication</h1>
+
+<hr />
+
+<div class="row">
+    <div class="col-md-5">
+
+        <div class="alert alert-info">
+            A 6-digit verification code has been sent to
+            <strong>@Model.MaskedEmail</strong>.
+        </div>
+
+        <p>
+            Enter the verification code below to complete your staff login.
+        </p>
+
+        <form method="post"
+              asp-route-returnUrl="@Model.ReturnUrl">
+
+            <input asp-for="RememberMe" type="hidden" />
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-danger"
+                 role="alert">
+            </div>
+
+            <div class="form-floating mb-3">
+
+                <input asp-for="Input.TwoFactorCode"
+                       class="form-control"
+                       autocomplete="one-time-code"
+                       inputmode="numeric"
+                       placeholder="000000" />
+
+                <label asp-for="Input.TwoFactorCode">
+                    Verification code
+                </label>
+
+                <span asp-validation-for="Input.TwoFactorCode"
+                      class="text-danger">
+                </span>
+
+            </div>
+
+            <div class="form-check mb-3">
+
+                <input asp-for="Input.RememberMachine"
+                       class="form-check-input" />
+
+                <label asp-for="Input.RememberMachine"
+                       class="form-check-label">
+                    Remember this machine
+                </label>
+
+            </div>
+
+            <button type="submit"
+                    class="w-100 btn btn-lg btn-primary">
+                Verify and Log In
+            </button>
+
+        </form>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

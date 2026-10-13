@@ -1,0 +1,48 @@
+@model LibraryManagementSystem.Models.FinePolicy
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+
+<h4>FinePolicy</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="ItemType" class="control-label"></label>
+                <input asp-for="ItemType" class="form-control" />
+                <span asp-validation-for="ItemType" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="DailyRate" class="control-label"></label>
+                <input asp-for="DailyRate" class="form-control" />
+                <span asp-validation-for="DailyRate" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="GracePeriodDays" class="control-label"></label>
+                <input asp-for="GracePeriodDays" class="form-control" />
+                <span asp-validation-for="GracePeriodDays" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="MaxFine" class="control-label"></label>
+                <input asp-for="MaxFine" class="form-control" />
+                <span asp-validation-for="MaxFine" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>

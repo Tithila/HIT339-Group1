@@ -1,0 +1,164 @@
+﻿@model LibraryManagementSystem.Models.ManagerDashboardViewModel
+
+@{
+    ViewData["Title"] = "Manager Dashboard";
+}
+
+<div class="container py-4">
+    <div class="mb-4">
+        <h1 class="fw-bold mb-1">Manager Dashboard</h1>
+        <p class="text-muted mb-0">
+            Overview of library inventory, loans, fines, and item condition costs.
+        </p>
+    </div>
+
+    <h4 class="fw-semibold mb-3">Inventory Overview</h4>
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Total Items</p>
+                    <h2 class="fw-bold mb-0">@Model.TotalItems</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Available</p>
+                    <h2 class="fw-bold text-success mb-0">@Model.AvailableItems</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Borrowed</p>
+                    <h2 class="fw-bold text-primary mb-0">@Model.BorrowedItems</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Returned Loans</p>
+                    <h2 class="fw-bold mb-0">@Model.ReturnedLoans</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="fw-semibold mb-3">Loan & Borrower Status</h4>
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Active Loans</p>
+                    <h2 class="fw-bold mb-0">@Model.ActiveLoans</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Overdue Loans</p>
+                    <h2 class="fw-bold text-warning mb-0">@Model.OverdueLoans</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Suspended Borrowers</p>
+                    <h2 class="fw-bold text-danger mb-0">@Model.SuspendedBorrowers</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Borrowed Items</p>
+                    <h2 class="fw-bold mb-0">@Model.BorrowedItems</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="fw-semibold mb-3">Item Condition Overview</h4>
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-xl-6">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Damaged Items</p>
+                    <h2 class="fw-bold text-warning mb-0">@Model.DamagedItems</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-6">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Destroyed Items</p>
+                    <h2 class="fw-bold text-danger mb-0">@Model.DestroyedItems</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="fw-semibold mb-3">Financial Overview</h4>
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-xl-4">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Total Fines Generated</p>
+                    <h2 class="fw-bold mb-0">$@Model.TotalFinesGenerated.ToString("F2")</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Fines Paid</p>
+                    <h2 class="fw-bold text-success mb-0">$@Model.TotalFinesPaid.ToString("F2")</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-4">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Outstanding Fines</p>
+                    <h2 class="fw-bold text-danger mb-0">$@Model.OutstandingFines.ToString("F2")</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="fw-semibold mb-3">Repair & Replacement Costs</h4>
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Total Repair Cost</p>
+                    <h2 class="fw-bold text-warning mb-0">$@Model.TotalRepairCost.ToString("F2")</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small fw-semibold mb-2">Total Replacement Loss</p>
+                    <h2 class="fw-bold text-danger mb-0">$@Model.TotalReplacementCost.ToString("F2")</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

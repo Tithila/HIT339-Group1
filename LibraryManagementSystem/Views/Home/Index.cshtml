@@ -1,0 +1,129 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="container py-5">
+
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold mb-3">
+            Library Management System
+        </h1>
+
+        <p class="lead text-muted mx-auto" style="max-width: 700px;">
+            Search library items, manage borrowing and returns, monitor fines,
+            review item conditions, and keep library operations organised.
+        </p>
+
+        <div class="mt-4 d-flex justify-content-center gap-3 flex-wrap">
+            <a asp-controller="Public"
+               asp-action="Search"
+               class="btn btn-primary btn-lg px-4">
+                Search Library
+            </a>
+
+            <a asp-controller="Public"
+               asp-action="RequestItem"
+               class="btn btn-outline-primary btn-lg px-4">
+                Request an Item
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-body p-4">
+                    <h4 class="fw-semibold mb-3">Public Access</h4>
+
+                    <p class="text-muted mb-0">
+                        Search the catalogue, check item availability and submit
+                        suggestions for items you would like the library to acquire.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-body p-4">
+                    <h4 class="fw-semibold mb-3">Library Operations</h4>
+
+                    <p class="text-muted mb-0">
+                        Staff can manage borrowing, returns, overdue fines,
+                        borrower eligibility and item condition inspections.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-body p-4">
+                    <h4 class="fw-semibold mb-3">Management</h4>
+
+                    <p class="text-muted mb-0">
+                        Managers can review live statistics, damaged and destroyed
+                        items, repair costs, replacement losses and audit records.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    @if (User.IsInRole("Admin"))
+    {
+        <div class="card shadow-sm border-0 rounded-4 mt-5">
+            <div class="card-body p-4">
+                <h4 class="fw-semibold">Admin Access</h4>
+                <p class="text-muted mb-3">
+                    Manage books, music, toys, fine policies and audit records.
+                </p>
+
+                <a asp-controller="Books"
+                   asp-action="Index"
+                   class="btn btn-primary">
+                    Manage Library Items
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (User.IsInRole("Reception"))
+    {
+        <div class="card shadow-sm border-0 rounded-4 mt-5">
+            <div class="card-body p-4">
+                <h4 class="fw-semibold">Reception Access</h4>
+                <p class="text-muted mb-3">
+                    Process borrowing, returns, fine payments and borrower records.
+                </p>
+
+                <a asp-controller="Reception"
+                   asp-action="Borrow"
+                   class="btn btn-primary">
+                    Open Reception
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (User.IsInRole("Manager"))
+    {
+        <div class="card shadow-sm border-0 rounded-4 mt-5">
+            <div class="card-body p-4">
+                <h4 class="fw-semibold">Manager Access</h4>
+                <p class="text-muted mb-3">
+                    View dashboard statistics, public item requests and audit records.
+                </p>
+
+                <a asp-controller="Manager"
+                   asp-action="Index"
+                   class="btn btn-primary">
+                    Open Manager Dashboard
+                </a>
+            </div>
+        </div>
+    }
+
+</div>

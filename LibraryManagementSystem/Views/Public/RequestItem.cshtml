@@ -1,0 +1,139 @@
+﻿@model LibraryManagementSystem.Models.ItemRequest
+
+@{
+    ViewData["Title"] = "Request an Item";
+}
+
+<div class="container py-4">
+
+    <div class="mb-4">
+        <h1 class="fw-bold mb-1">Request an Item</h1>
+        <p class="text-muted mb-0">
+            Can't find what you're looking for? Send a suggestion for the library to review.
+        </p>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success shadow-sm border-0 rounded-4">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+
+                    <form asp-action="RequestItem" method="post">
+
+                        <div asp-validation-summary="ModelOnly"
+                             class="text-danger mb-3">
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Title"
+                                   class="form-label fw-semibold">
+                            </label>
+
+                            <input asp-for="Title"
+                                   class="form-control"
+                                   placeholder="Enter item title" />
+
+                            <span asp-validation-for="Title"
+                                  class="text-danger">
+                            </span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Type"
+                                   class="form-label fw-semibold">
+                            </label>
+
+                            <select asp-for="Type"
+                                    class="form-select">
+
+                                <option value="">
+                                    -- Select Item Type --
+                                </option>
+
+                                <option value="Book">
+                                    Book
+                                </option>
+
+                                <option value="Music">
+                                    Music
+                                </option>
+
+                                <option value="Toy">
+                                    Toy
+                                </option>
+
+                            </select>
+
+                            <span asp-validation-for="Type"
+                                  class="text-danger">
+                            </span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="RequesterEmail"
+                                   class="form-label fw-semibold">
+                            </label>
+
+                            <input asp-for="RequesterEmail"
+                                   class="form-control"
+                                   placeholder="you@example.com" />
+
+                            <span asp-validation-for="RequesterEmail"
+                                  class="text-danger">
+                            </span>
+                        </div>
+
+                        <button type="submit"
+                                class="btn btn-primary px-4">
+                            Submit Request
+                        </button>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-lg-5 mt-4 mt-lg-0">
+
+            <div class="card shadow-sm border-0 rounded-4 h-100">
+                <div class="card-body p-4">
+
+                    <h4 class="fw-semibold mb-3">
+                        How it works
+                    </h4>
+
+                    <p class="text-muted">
+                        Your suggestion will be sent to the library manager for review.
+                    </p>
+
+                    <p class="text-muted">
+                        Each request starts as <strong>Pending</strong>.
+                    </p>
+
+                    <p class="text-muted mb-0">
+                        The manager can then approve or reject the request and add a note.
+                    </p>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
