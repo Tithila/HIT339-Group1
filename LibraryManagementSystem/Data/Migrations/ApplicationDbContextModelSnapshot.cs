@@ -87,6 +87,41 @@ namespace LibraryManagementSystem.Data.Migrations
                     b.ToTable("Borrowers");
                 });
 
+            modelBuilder.Entity("LibraryManagementSystem.Models.Branch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("OpeningHours")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Branches");
+                });
+
             modelBuilder.Entity("LibraryManagementSystem.Models.FinePolicy", b =>
                 {
                     b.Property<int>("Id")
@@ -121,6 +156,9 @@ namespace LibraryManagementSystem.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -145,6 +183,8 @@ namespace LibraryManagementSystem.Data.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
 
                     b.HasIndex("LibraryCode")
                         .IsUnique();
@@ -517,6 +557,16 @@ namespace LibraryManagementSystem.Data.Migrations
                     b.HasDiscriminator().HasValue("Toy");
                 });
 
+            modelBuilder.Entity("LibraryManagementSystem.Models.Item", b =>
+                {
+                    b.HasOne("LibraryManagementSystem.Models.Branch", "Branch")
+                        .WithMany("Items")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Branch");
+                });
+
             modelBuilder.Entity("LibraryManagementSystem.Models.Loan", b =>
                 {
                     b.HasOne("LibraryManagementSystem.Models.Borrower", "Borrower")
@@ -601,6 +651,11 @@ namespace LibraryManagementSystem.Data.Migrations
             modelBuilder.Entity("LibraryManagementSystem.Models.Borrower", b =>
                 {
                     b.Navigation("Loans");
+                });
+
+            modelBuilder.Entity("LibraryManagementSystem.Models.Branch", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,175 +1,317 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using LibraryManagementSystem.Models;
+
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using LibraryManagementSystem.Data;
+using LibraryManagementSystem.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
-[Authorize(Roles = "Admin")]
-public class BooksController : Controller
+namespace LibraryManagementSystem.Controllers
 {
-    private readonly ApplicationDbContext _context;
-
-    public BooksController(ApplicationDbContext context)
+    [Authorize(Roles = "Admin")]
+    public class BooksController : Controller
     {
-        _context = context;
-    }
+        private readonly ApplicationDbContext _context;
 
-    // GET: BOOKS
-    public async Task<IActionResult> Index()
-    {
-        return View(await _context.Books.ToListAsync());
-    }
-
-    // GET: BOOKS/Details/5
-    public async Task<IActionResult> Details(int? id)
-    {
-        if (id == null)
+        public BooksController(ApplicationDbContext context)
         {
-            return NotFound();
+            _context = context;
         }
 
-        var book = await _context.Books
-            .FirstOrDefaultAsync(m => m.Id == id);
-
-        if (book == null)
+        // GET: Books
+        public async Task<IActionResult> Index()
         {
-            return NotFound();
+            var books = await _context.Books
+                .Include(b => b.Branch)
+                .AsNoTracking()
+                .OrderBy(b => b.Name)
+                .ToListAsync();
+
+            return View(books);
         }
 
-        return View(book);
-    }
-
-    // GET: BOOKS/Create
-    public IActionResult Create()
-    {
-        return View();
-    }
-
-    // POST: BOOKS/Create
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(
-        [Bind("Author,Genre,Id,Name,Description,LibraryCode,Status")] Book book)
-    {
-        if (await _context.Items.AnyAsync(i =>
-            i.LibraryCode == book.LibraryCode))
+        // GET: Books/Details/5
+        public async Task<IActionResult> Details(int? id)
         {
-            ModelState.AddModelError(
-                "LibraryCode",
-                "This library code already exists. Please use a unique code.");
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var book = await _context.Books
+                .Include(b => b.Branch)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => b.Id == id.Value);
+
+            if (book == null)
+            {
+                return NotFound();
+            }
+
+            return View(book);
         }
 
-        if (ModelState.IsValid)
+        // GET: Books/Create
+        public async Task<IActionResult> Create()
         {
-            _context.Add(book);
-            await _context.SaveChangesAsync();
+            await LoadBranchesAsync();
+
+            return View();
+        }
+
+        // POST: Books/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(
+            [Bind("Name,Description,LibraryCode,Status,Author,Genre,BranchId")]
+            Book book)
+        {
+            if (book.BranchId == null)
+            {
+                ModelState.AddModelError(
+                    nameof(Book.BranchId),
+                    "Please select a library branch.");
+            }
+            else
+            {
+                bool branchExists = await _context.Branches
+                    .AnyAsync(b => b.Id == book.BranchId.Value);
+
+                if (!branchExists)
+                {
+                    ModelState.AddModelError(
+                        nameof(Book.BranchId),
+                        "The selected library branch is invalid.");
+                }
+            }
+
+            bool codeExists = await _context.Items
+                .AnyAsync(i => i.LibraryCode == book.LibraryCode);
+
+            if (codeExists)
+            {
+                ModelState.AddModelError(
+                    nameof(Book.LibraryCode),
+                    "This library code is already in use.");
+            }
+
+            // Navigation properties are loaded by EF,
+            // not entered directly through the form.
+            ModelState.Remove(nameof(Book.Branch));
+
+            if (!ModelState.IsValid)
+            {
+                await LoadBranchesAsync(book.BranchId);
+
+                return View(book);
+            }
+
+            _context.Books.Add(book);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                ModelState.AddModelError(
+                    nameof(Book.LibraryCode),
+                    "Unable to save the book. Check that its library code is unique.");
+
+                await LoadBranchesAsync(book.BranchId);
+
+                return View(book);
+            }
+
+            TempData["SuccessMessage"] =
+                "Book created successfully.";
 
             return RedirectToAction(nameof(Index));
         }
 
-        return View(book);
-    }
-
-    // GET: BOOKS/Edit/5
-    public async Task<IActionResult> Edit(int? id)
-    {
-        if (id == null)
+        // GET: Books/Edit/5
+        public async Task<IActionResult> Edit(int? id)
         {
-            return NotFound();
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var book = await _context.Books
+                .Include(b => b.Branch)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => b.Id == id.Value);
+
+            if (book == null)
+            {
+                return NotFound();
+            }
+
+            return View(book);
         }
 
-        var book = await _context.Books.FindAsync(id);
-
-        if (book == null)
+        // POST: Books/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(
+            int id,
+            [Bind("Id,Name,Description,LibraryCode,Status,Author,Genre")]
+            Book input)
         {
-            return NotFound();
-        }
+            if (id != input.Id)
+            {
+                return NotFound();
+            }
 
-        return View(book);
-    }
+            var book = await _context.Books
+                .Include(b => b.Branch)
+                .FirstOrDefaultAsync(b => b.Id == id);
 
-    // POST: BOOKS/Edit/5
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(
-        int? id,
-        [Bind("Author,Genre,Id,Name,Description,LibraryCode,Status")] Book book)
-    {
-        if (id != book.Id)
-        {
-            return NotFound();
-        }
+            if (book == null)
+            {
+                return NotFound();
+            }
 
-        if (await _context.Items.AnyAsync(i =>
-            i.LibraryCode == book.LibraryCode &&
-            i.Id != book.Id))
-        {
-            ModelState.AddModelError(
-                "LibraryCode",
-                "This library code already exists. Please use a unique code.");
-        }
+            bool codeExists = await _context.Items
+                .AnyAsync(i =>
+                    i.LibraryCode == input.LibraryCode &&
+                    i.Id != id);
 
-        if (ModelState.IsValid)
-        {
+            if (codeExists)
+            {
+                ModelState.AddModelError(
+                    nameof(Book.LibraryCode),
+                    "This library code is already in use.");
+            }
+
+            // Branch cannot be changed from the Edit form.
+            // Branch movement must use the transfer workflow.
+            ModelState.Remove(nameof(Book.Branch));
+            ModelState.Remove(nameof(Book.BranchId));
+
+            if (!ModelState.IsValid)
+            {
+                input.BranchId = book.BranchId;
+                input.Branch = book.Branch;
+
+                return View(input);
+            }
+
+            book.Name = input.Name;
+            book.Description = input.Description;
+            book.LibraryCode = input.LibraryCode;
+            book.Status = input.Status;
+            book.Author = input.Author;
+            book.Genre = input.Genre;
+
+            // Do not update book.BranchId.
+
             try
             {
-                _context.Update(book);
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!BookExists(book.Id))
+                if (!await BookExistsAsync(id))
                 {
                     return NotFound();
                 }
 
                 throw;
             }
+            catch (DbUpdateException)
+            {
+                ModelState.AddModelError(
+                    nameof(Book.LibraryCode),
+                    "Unable to save changes. Check that the library code is unique.");
+
+                input.BranchId = book.BranchId;
+                input.Branch = book.Branch;
+
+                return View(input);
+            }
+
+            TempData["SuccessMessage"] =
+                "Book updated successfully.";
 
             return RedirectToAction(nameof(Index));
         }
 
-        return View(book);
-    }
-
-    // GET: BOOKS/Delete/5
-    public async Task<IActionResult> Delete(int? id)
-    {
-        if (id == null)
+        // GET: Books/Delete/5
+        public async Task<IActionResult> Delete(int? id)
         {
-            return NotFound();
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var book = await _context.Books
+                .Include(b => b.Branch)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(b => b.Id == id.Value);
+
+            if (book == null)
+            {
+                return NotFound();
+            }
+
+            return View(book);
         }
 
-        var book = await _context.Books
-            .FirstOrDefaultAsync(m => m.Id == id);
-
-        if (book == null)
+        // POST: Books/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            return NotFound();
-        }
+            var book = await _context.Books
+                .FindAsync(id);
 
-        return View(book);
-    }
+            if (book == null)
+            {
+                return RedirectToAction(nameof(Index));
+            }
 
-    // POST: BOOKS/Delete/5
-    [HttpPost, ActionName("Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int? id)
-    {
-        var book = await _context.Books.FindAsync(id);
-
-        if (book != null)
-        {
             _context.Books.Remove(book);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                TempData["ErrorMessage"] =
+                    "This book cannot be deleted because it may have related records.";
+
+                return RedirectToAction(nameof(Index));
+            }
+
+            TempData["SuccessMessage"] =
+                "Book deleted successfully.";
+
+            return RedirectToAction(nameof(Index));
         }
 
-        await _context.SaveChangesAsync();
+        private async Task LoadBranchesAsync(int? selectedBranchId = null)
+        {
+            var branches = await _context.Branches
+                .AsNoTracking()
+                .OrderBy(b => b.Name)
+                .ToListAsync();
 
-        return RedirectToAction(nameof(Index));
-    }
+            ViewBag.Branches = new SelectList(
+                branches,
+                "Id",
+                "Name",
+                selectedBranchId);
+        }
 
-    private bool BookExists(int? id)
-    {
-        return _context.Books.Any(e => e.Id == id);
+        private async Task<bool> BookExistsAsync(int id)
+        {
+            return await _context.Books
+                .AnyAsync(b => b.Id == id);
+        }
     }
 }
