@@ -4,16 +4,36 @@
     ViewData["Title"] = "Self-Service Kiosk";
 }
 
-<div class="container py-4">
+<div id="kioskPage" class="container py-4">
 
-    <div class="text-center mb-5">
+    <div class="text-center mb-4">
         <h1 class="fw-bold display-5 mb-3">
             Library Self-Service Kiosk
         </h1>
 
-        <p class="text-muted fs-5">
+        <p class="text-muted fs-5 mb-4">
             Enter or scan an item's library code to check its current availability.
         </p>
+
+        <div class="d-flex justify-content-center gap-2 flex-wrap">
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    onclick="setKioskMode('standard')">
+                Standard
+            </button>
+
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    onclick="setKioskMode('large')">
+                Large Text
+            </button>
+
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    onclick="setKioskMode('contrast')">
+                High Contrast
+            </button>
+        </div>
     </div>
 
     <div class="row justify-content-center">
@@ -145,4 +165,33 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script>
+        function setKioskMode(mode) {
+            const page = document.getElementById('kioskPage');
+
+            page.classList.remove(
+                'kiosk-large-text',
+                'kiosk-high-contrast'
+            );
+
+            if (mode === 'large') {
+                page.classList.add('kiosk-large-text');
+            }
+
+            if (mode === 'contrast') {
+                page.classList.add('kiosk-high-contrast');
+            }
+
+            localStorage.setItem('kioskMode', mode);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedMode = localStorage.getItem('kioskMode');
+
+            if (savedMode) {
+                setKioskMode(savedMode);
+            }
+        });
+    </script>
 }
