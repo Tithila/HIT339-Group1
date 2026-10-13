@@ -18,6 +18,10 @@ public class Borrower
     [Phone]
     public string Phone { get; set; } = string.Empty;
 
+    [StringLength(20)]
+    [Display(Name = "Library Card Number")]
+    public string? LibraryCardNumber { get; set; }
+
     public bool IsSuspended { get; set; } = false;
 
     public string? SuspensionReason { get; set; }

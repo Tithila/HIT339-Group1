@@ -1,59 +1,92 @@
 @model LibraryManagementSystem.Models.Borrower
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Borrower Details";
 }
 
-<h1>Details</h1>
+<h1>Borrower Details</h1>
 
 <div>
-    <h4>Borrower</h4>
+    <h4>@Model.FullName</h4>
     <hr />
+
     <dl class="row">
-        <dt class = "col-sm-2">
+
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.FullName)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.FullName)
         </dd>
-    </dl>
-        <dt class = "col-sm-2">
+
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Email)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Email)
         </dd>
-    </dl>
-        <dt class = "col-sm-2">
+
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.Phone)
         </dt>
-        <dd class = "col-sm-10">
+        <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Phone)
         </dd>
-    </dl>
-        <dt class = "col-sm-2">
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.LibraryCardNumber)
+        </dt>
+        <dd class="col-sm-10">
+            @if (string.IsNullOrWhiteSpace(Model.LibraryCardNumber))
+            {
+                <span class="text-muted">Not assigned</span>
+            }
+            else
+            {
+                <strong>@Model.LibraryCardNumber</strong>
+            }
+        </dd>
+
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.IsSuspended)
         </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsSuspended)
+        <dd class="col-sm-10">
+            @if (Model.IsSuspended)
+            {
+                <span class="badge bg-danger">Suspended</span>
+            }
+            else
+            {
+                <span class="badge bg-success">Active</span>
+            }
         </dd>
-    </dl>
-        <dt class = "col-sm-2">
+
+        <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.SuspensionReason)
         </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.SuspensionReason)
+        <dd class="col-sm-10">
+            @if (string.IsNullOrWhiteSpace(Model.SuspensionReason))
+            {
+                <span class="text-muted">No restrictions</span>
+            }
+            else
+            {
+                @Model.SuspensionReason
+            }
         </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Loans)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Loans)
-        </dd>
+
     </dl>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+<div class="mt-3">
+    <a asp-action="Edit"
+       asp-route-id="@Model.Id"
+       class="btn btn-primary">
+        Edit
+    </a>
+
+    <a asp-action="Index"
+       class="btn btn-outline-secondary">
+        Back to List
+    </a>
 </div>
