@@ -9,6 +9,8 @@ public class KioskController : Controller
 {
     private readonly ApplicationDbContext _context;
 
+    private const string KioskBorrowerSessionKey = "KioskBorrowerId";
+
     public KioskController(ApplicationDbContext context)
     {
         _context = context;
@@ -20,8 +22,29 @@ public class KioskController : Controller
     // -------------------------
 
     [HttpGet]
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
+        var borrowerId =
+            HttpContext.Session.GetInt32(KioskBorrowerSessionKey);
+
+        if (borrowerId == null)
+        {
+            return RedirectToAction(nameof(Borrower));
+        }
+
+        var borrower = await _context.Borrowers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == borrowerId.Value);
+
+        if (borrower == null || borrower.IsSuspended)
+        {
+            HttpContext.Session.Remove(KioskBorrowerSessionKey);
+
+            return RedirectToAction(nameof(Borrower));
+        }
+
+        ViewBag.KioskBorrower = borrower;
+
         return View(new KioskSearchViewModel());
     }
 
@@ -34,6 +57,27 @@ public class KioskController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Index(KioskSearchViewModel model)
     {
+        var borrowerId =
+            HttpContext.Session.GetInt32(KioskBorrowerSessionKey);
+
+        if (borrowerId == null)
+        {
+            return RedirectToAction(nameof(Borrower));
+        }
+
+        var borrower = await _context.Borrowers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == borrowerId.Value);
+
+        if (borrower == null || borrower.IsSuspended)
+        {
+            HttpContext.Session.Remove(KioskBorrowerSessionKey);
+
+            return RedirectToAction(nameof(Borrower));
+        }
+
+        ViewBag.KioskBorrower = borrower;
+
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -69,14 +113,16 @@ public class KioskController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Borrower(KioskBorrowerViewModel model)
+    public async Task<IActionResult> Borrower(
+        KioskBorrowerViewModel model)
     {
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        var cardNumber = model.LibraryCardNumber.Trim();
+        var cardNumber =
+            model.LibraryCardNumber.Trim();
 
         var borrower = await _context.Borrowers
             .AsNoTracking()
@@ -86,6 +132,32 @@ public class KioskController : Controller
         model.SearchPerformed = true;
         model.Borrower = borrower;
 
+        if (borrower != null && !borrower.IsSuspended)
+        {
+            HttpContext.Session.SetInt32(
+                KioskBorrowerSessionKey,
+                borrower.Id);
+        }
+        else
+        {
+            HttpContext.Session.Remove(
+                KioskBorrowerSessionKey);
+        }
+
         return View(model);
+    }
+
+    // -------------------------
+    // End kiosk session
+    // GET: /Kiosk/Cancel
+    // -------------------------
+
+    [HttpGet]
+    public IActionResult Cancel()
+    {
+        HttpContext.Session.Remove(
+            KioskBorrowerSessionKey);
+
+        return RedirectToAction(nameof(Borrower));
     }
 }

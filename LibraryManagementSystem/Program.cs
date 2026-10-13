@@ -24,9 +24,20 @@ builder.Services
 
 builder.Services.AddControllersWithViews();
 
+// Session is used by the self-service kiosk
+// to remember the verified borrower between screens.
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(10);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 builder.Services.AddScoped<IFineCalculator, FineCalculator>();
 builder.Services.AddScoped<IBorrowerEligibilityService, BorrowerEligibilityService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+
+// Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -37,7 +48,8 @@ builder.Services.AddTransient<IEmailSender<IdentityUser>, DevelopmentEmailSender
 
 var app = builder.Build();
 
-// Create roles automatically when the app starts.
+// Create roles and seed library data automatically
+// when the application starts.
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -58,7 +70,6 @@ if (app.Environment.IsDevelopment())
 
     app.UseSwagger();
     app.UseSwaggerUI();
-
 }
 else
 {
@@ -67,14 +78,21 @@ else
 }
 
 app.UseHttpsRedirection();
+
 app.UseRouting();
+
+// Session must be enabled after routing
+// and before controller actions use HttpContext.Session.
+app.UseSession();
 
 app.UseAuthorization();
 
 app.MapStaticAssets();
 
+// Attribute-routed API controllers
 app.MapControllers();
 
+// Standard MVC routes
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
