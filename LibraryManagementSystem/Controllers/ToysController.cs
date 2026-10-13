@@ -1,8 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using LibraryManagementSystem.Models;
+
 using LibraryManagementSystem.Data;
+using LibraryManagementSystem.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
 [Authorize(Roles = "Admin")]
 public class ToysController : Controller
@@ -14,13 +16,43 @@ public class ToysController : Controller
         _context = context;
     }
 
-    // GET: TOYS
-    public async Task<IActionResult> Index()
+    // Load available branches for the Create form
+    private async Task LoadBranchesAsync()
     {
-        return View(await _context.Toys.ToListAsync());
+        var branches = await _context.Branches
+            .AsNoTracking()
+            .OrderBy(b => b.Name)
+            .ToListAsync();
+
+        ViewBag.Branches = new SelectList(
+            branches, "Id", "Name");
     }
 
-    // GET: TOYS/Details/5
+    // Validate the selected library branch
+    private async Task ValidateBranchAsync(int? branchId)
+    {
+        if (!branchId.HasValue ||
+            !await _context.Branches.AnyAsync(
+                b => b.Id == branchId.Value))
+        {
+            ModelState.AddModelError(
+                "BranchId",
+                "Please select a valid library branch.");
+        }
+    }
+
+    // GET: Toys
+    public async Task<IActionResult> Index()
+    {
+        var toys = await _context.Toys
+            .Include(t => t.Branch)
+            .AsNoTracking()
+            .ToListAsync();
+
+        return View(toys);
+    }
+
+    // GET: Toys/Details/5
     public async Task<IActionResult> Details(int? id)
     {
         if (id == null)
@@ -29,7 +61,9 @@ public class ToysController : Controller
         }
 
         var toy = await _context.Toys
-            .FirstOrDefaultAsync(m => m.Id == id);
+            .Include(t => t.Branch)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == id);
 
         if (toy == null)
         {
@@ -39,17 +73,20 @@ public class ToysController : Controller
         return View(toy);
     }
 
-    // GET: TOYS/Create
-    public IActionResult Create()
+    // GET: Toys/Create
+    public async Task<IActionResult> Create()
     {
+        await LoadBranchesAsync();
+
         return View();
     }
 
-    // POST: TOYS/Create
+    // POST: Toys/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(
-        [Bind("Type,RecommendedAge,Id,Name,Description,LibraryCode,Status")] Toy toy)
+        [Bind("Type,RecommendedAge,Name,Description,LibraryCode,Status,BranchId")]
+        Toy toy)
     {
         if (await _context.Items.AnyAsync(i =>
             i.LibraryCode == toy.LibraryCode))
@@ -59,21 +96,52 @@ public class ToysController : Controller
                 "This library code already exists. Please use a unique code.");
         }
 
+        await ValidateBranchAsync(toy.BranchId);
+
         if (ModelState.IsValid)
         {
-            _context.Add(toy);
+            _context.Toys.Add(toy);
+
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index));
         }
 
+        await LoadBranchesAsync();
+
         return View(toy);
     }
 
-    // GET: TOYS/Edit/5
+    // GET: Toys/Edit/5
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null)
+        {
+            return NotFound();
+        }
+
+        var toy = await _context.Toys
+            .Include(t => t.Branch)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == id);
+
+        if (toy == null)
+        {
+            return NotFound();
+        }
+
+        return View(toy);
+    }
+
+    // POST: Toys/Edit/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(
+        int? id,
+        [Bind("Id,Type,RecommendedAge,Name,Description,LibraryCode,Status")]
+        Toy input)
+    {
+        if (id == null || id != input.Id)
         {
             return NotFound();
         }
@@ -85,54 +153,56 @@ public class ToysController : Controller
             return NotFound();
         }
 
-        return View(toy);
-    }
-
-    // POST: TOYS/Edit/5
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(
-        int? id,
-        [Bind("Type,RecommendedAge,Id,Name,Description,LibraryCode,Status")] Toy toy)
-    {
-        if (id != toy.Id)
-        {
-            return NotFound();
-        }
-
         if (await _context.Items.AnyAsync(i =>
-            i.LibraryCode == toy.LibraryCode &&
-            i.Id != toy.Id))
+            i.LibraryCode == input.LibraryCode &&
+            i.Id != input.Id))
         {
             ModelState.AddModelError(
                 "LibraryCode",
                 "This library code already exists. Please use a unique code.");
         }
 
+        // BranchId is intentionally excluded from Edit.
+        // Existing items must move through the transfer workflow.
+
         if (ModelState.IsValid)
         {
+            toy.Type = input.Type;
+            toy.RecommendedAge = input.RecommendedAge;
+            toy.Name = input.Name;
+            toy.Description = input.Description;
+            toy.LibraryCode = input.LibraryCode;
+            toy.Status = input.Status;
+
             try
             {
-                _context.Update(toy);
                 await _context.SaveChangesAsync();
+
+                return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!ToyExists(toy.Id))
+                if (!await _context.Toys
+                    .AnyAsync(t => t.Id == input.Id))
                 {
                     return NotFound();
                 }
 
                 throw;
             }
-
-            return RedirectToAction(nameof(Index));
         }
 
-        return View(toy);
+        // Restore branch information when validation fails.
+        input.BranchId = toy.BranchId;
+
+        input.Branch = await _context.Branches
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == toy.BranchId);
+
+        return View(input);
     }
 
-    // GET: TOYS/Delete/5
+    // GET: Toys/Delete/5
     public async Task<IActionResult> Delete(int? id)
     {
         if (id == null)
@@ -141,7 +211,9 @@ public class ToysController : Controller
         }
 
         var toy = await _context.Toys
-            .FirstOrDefaultAsync(m => m.Id == id);
+            .Include(t => t.Branch)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == id);
 
         if (toy == null)
         {
@@ -151,7 +223,7 @@ public class ToysController : Controller
         return View(toy);
     }
 
-    // POST: TOYS/Delete/5
+    // POST: Toys/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int? id)
@@ -161,15 +233,10 @@ public class ToysController : Controller
         if (toy != null)
         {
             _context.Toys.Remove(toy);
+
+            await _context.SaveChangesAsync();
         }
 
-        await _context.SaveChangesAsync();
-
         return RedirectToAction(nameof(Index));
-    }
-
-    private bool ToyExists(int? id)
-    {
-        return _context.Toys.Any(e => e.Id == id);
     }
 }
