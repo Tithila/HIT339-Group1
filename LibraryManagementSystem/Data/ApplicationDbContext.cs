@@ -31,6 +31,13 @@ namespace LibraryManagementSystem.Data
         {
             base.OnModelCreating(builder);
 
+            // Each borrower must have a unique library card number.
+            // Borrowers without a card number are permitted.
+            builder.Entity<Borrower>()
+                .HasIndex(b => b.LibraryCardNumber)
+                .IsUnique()
+                .HasFilter("[LibraryCardNumber] IS NOT NULL");
+
             // Each branch must have a unique code.
             builder.Entity<Branch>()
                 .HasIndex(b => b.Code)
