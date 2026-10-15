@@ -1,0 +1,190 @@
+﻿@model LibraryManagementSystem.Models.TransferRequest
+@using LibraryManagementSystem.Models
+
+@{
+    ViewData["Title"] = "Transfer Details";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold">Transfer Details</h1>
+            <p class="text-muted">
+                View and manage inter-branch transfer #@Model.Id.
+            </p>
+        </div>
+
+        <a asp-controller="Transfers"
+           asp-action="Index"
+           class="btn btn-outline-secondary">
+            Back to Transfers
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Transfer Information</h4>
+        </div>
+
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Transfer ID</dt>
+                <dd class="col-sm-8">#@Model.Id</dd>
+
+                <dt class="col-sm-4">Library Item</dt>
+                <dd class="col-sm-8">
+                    @(Model.Item?.Name ?? "Unknown Item")
+                </dd>
+
+                <dt class="col-sm-4">Library Code</dt>
+                <dd class="col-sm-8">
+                    @(Model.Item?.LibraryCode ?? "N/A")
+                </dd>
+
+                <dt class="col-sm-4">From Branch</dt>
+                <dd class="col-sm-8">
+                    @(Model.FromBranch?.Name ?? "Unknown")
+                </dd>
+
+                <dt class="col-sm-4">To Branch</dt>
+                <dd class="col-sm-8">
+                    @(Model.ToBranch?.Name ?? "Unknown")
+                </dd>
+
+                <dt class="col-sm-4">Requested By</dt>
+                <dd class="col-sm-8">
+                    @Model.RequestedBy
+                </dd>
+
+                <dt class="col-sm-4">Requested Date</dt>
+                <dd class="col-sm-8">
+                    @Model.RequestedDate.ToString("dd MMM yyyy HH:mm")
+                    UTC
+                </dd>
+
+                <dt class="col-sm-4">Status</dt>
+                <dd class="col-sm-8">
+                    <span class="badge bg-secondary">
+                        @Model.Status
+                    </span>
+                </dd>
+
+                <dt class="col-sm-4">Completed Date</dt>
+                <dd class="col-sm-8">
+                    @(Model.CompletedDate.HasValue
+                        ? Model.CompletedDate.Value.ToString("dd MMM yyyy HH:mm") + " UTC"
+                        : "Not completed")
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h4 class="mb-0">Transfer Actions</h4>
+        </div>
+
+        <div class="card-body">
+            @if (Model.Status == TransferStatus.Requested)
+            {
+                <div class="d-flex gap-2 flex-wrap">
+                    <form asp-controller="Transfers"
+                          asp-action="Approve"
+                          asp-route-id="@Model.Id"
+                          method="post">
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit"
+                                class="btn btn-success">
+                            Approve Transfer
+                        </button>
+                    </form>
+
+                    <form asp-controller="Transfers"
+                          asp-action="Reject"
+                          asp-route-id="@Model.Id"
+                          method="post">
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit"
+                                class="btn btn-danger"
+                                onclick="return confirm('Reject this transfer request?');">
+                            Reject Transfer
+                        </button>
+                    </form>
+                </div>
+            }
+            else if (Model.Status == TransferStatus.Approved)
+            {
+                <div class="d-flex gap-2 flex-wrap">
+                    <form asp-controller="Transfers"
+                          asp-action="MarkInTransit"
+                          asp-route-id="@Model.Id"
+                          method="post">
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Mark as In Transit
+                        </button>
+                    </form>
+
+                    <form asp-controller="Transfers"
+                          asp-action="Reject"
+                          asp-route-id="@Model.Id"
+                          method="post">
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit"
+                                class="btn btn-outline-danger"
+                                onclick="return confirm('Reject this transfer request?');">
+                            Reject Transfer
+                        </button>
+                    </form>
+                </div>
+            }
+            else if (Model.Status == TransferStatus.InTransit)
+            {
+                <form asp-controller="Transfers"
+                      asp-action="Complete"
+                      asp-route-id="@Model.Id"
+                      method="post">
+                    @Html.AntiForgeryToken()
+
+                    <button type="submit"
+                            class="btn btn-success"
+                            onclick="return confirm('Confirm the item has arrived at the destination branch?');">
+                        Complete Transfer
+                    </button>
+                </form>
+            }
+            else if (Model.Status == TransferStatus.Completed)
+            {
+                <div class="alert alert-success mb-0">
+                    This transfer has been completed.
+                    The item's branch has been updated.
+                </div>
+            }
+            else if (Model.Status == TransferStatus.Rejected)
+            {
+                <div class="alert alert-danger mb-0">
+                    This transfer request was rejected.
+                </div>
+            }
+        </div>
+    </div>
+</div>
