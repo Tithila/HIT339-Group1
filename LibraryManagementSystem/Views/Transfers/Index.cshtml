@@ -1,0 +1,138 @@
+﻿@model IEnumerable<LibraryManagementSystem.Models.TransferRequest>
+@using LibraryManagementSystem.Models
+
+@{
+    ViewData["Title"] = "Inter-Branch Transfers";
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold">Inter-Branch Transfers</h1>
+            <p class="text-muted">
+                Manage and track item transfers between library branches.
+            </p>
+        </div>
+
+        <a asp-controller="Transfers"
+           asp-action="Create"
+           class="btn btn-primary btn-lg">
+            Request New Transfer
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success" role="alert">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger" role="alert">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5">
+                    <h4>No Transfer Requests Yet</h4>
+                    <p class="text-muted">
+                        Create your first transfer request to move
+                        an item between library branches.
+                    </p>
+
+                    <a asp-controller="Transfers"
+                       asp-action="Create"
+                       class="btn btn-primary">
+                        Create Transfer Request
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th>Transfer ID</th>
+                                <th>Item</th>
+                                <th>From Branch</th>
+                                <th>To Branch</th>
+                                <th>Requested Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var transfer in Model)
+                            {
+                                var statusClass = transfer.Status switch
+                                {
+                                    TransferStatus.Requested => "bg-secondary",
+                                    TransferStatus.Approved => "bg-primary",
+                                    TransferStatus.InTransit => "bg-warning text-dark",
+                                    TransferStatus.Completed => "bg-success",
+                                    TransferStatus.Rejected => "bg-danger",
+                                    _ => "bg-secondary"
+                                };
+
+                                <tr>
+                                    <td>
+                                        <strong>#@transfer.Id</strong>
+                                    </td>
+
+                                    <td>
+                                        <strong>
+                                            @(transfer.Item?.Name ?? "Unknown Item")
+                                        </strong>
+                                        <div class="small text-muted">
+                                            @transfer.Item?.LibraryCode
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        @(transfer.FromBranch?.Name ?? "Unknown")
+                                    </td>
+
+                                    <td>
+                                        @(transfer.ToBranch?.Name ?? "Unknown")
+                                    </td>
+
+                                    <td>
+                                        @transfer.RequestedDate.ToString("dd MMM yyyy")
+                                    </td>
+
+                                    <td>
+                                        <span class="badge @statusClass">
+                                            @transfer.Status
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <a asp-controller="Transfers"
+                                           asp-action="Details"
+                                           asp-route-id="@transfer.Id"
+                                           class="btn btn-outline-primary btn-sm">
+                                            View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+        </div>
+    </div>
+
+</div>
