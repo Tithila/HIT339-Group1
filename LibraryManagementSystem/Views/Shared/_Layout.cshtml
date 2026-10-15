@@ -1,15 +1,25 @@
-﻿<!DOCTYPE html>
+﻿
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+
     <title>@ViewData["Title"] - LibraryManagementSystem</title>
 
     <script type="importmap"></script>
 
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/LibraryManagementSystem.styles.css" asp-append-version="true" />
+    <link rel="stylesheet"
+          href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <link rel="stylesheet"
+          href="~/css/site.css"
+          asp-append-version="true" />
+
+    <link rel="stylesheet"
+          href="~/LibraryManagementSystem.styles.css"
+          asp-append-version="true" />
 </head>
 
 <body>
@@ -17,6 +27,7 @@
         <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
 
+                <!-- Website Brand -->
                 <a class="navbar-brand"
                    asp-area=""
                    asp-controller="Home"
@@ -24,20 +35,23 @@
                     LibraryManagementSystem
                 </a>
 
+                <!-- Mobile Navigation Button -->
                 <button class="navbar-toggler"
                         type="button"
                         data-bs-toggle="collapse"
-                        data-bs-target=".navbar-collapse"
-                        aria-controls="navbarSupportedContent"
+                        data-bs-target="#mainNavbar"
+                        aria-controls="mainNavbar"
                         aria-expanded="false"
                         aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
-                <div class="navbar-collapse collapse d-lg-inline-flex justify-content-between">
+                <div id="mainNavbar"
+                     class="navbar-collapse collapse">
 
-                    <ul class="navbar-nav flex-grow-1">
+                    <ul class="navbar-nav flex-grow-1 flex-wrap">
 
+                        <!-- Home -->
                         <li class="nav-item">
                             <a class="nav-link text-dark"
                                asp-area=""
@@ -47,6 +61,7 @@
                             </a>
                         </li>
 
+                        <!-- Public Library Search -->
                         <li class="nav-item">
                             <a class="nav-link text-dark"
                                asp-controller="Public"
@@ -55,6 +70,7 @@
                             </a>
                         </li>
 
+                        <!-- Public Item Requests -->
                         <li class="nav-item">
                             <a class="nav-link text-dark"
                                asp-controller="Public"
@@ -63,6 +79,7 @@
                             </a>
                         </li>
 
+                        <!-- ADMIN NAVIGATION -->
                         @if (User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
@@ -89,6 +106,15 @@
                                 </a>
                             </li>
 
+                            <!-- NEW: INTER-BRANCH TRANSFERS -->
+                            <li class="nav-item">
+                                <a class="nav-link text-dark"
+                                   asp-controller="Transfers"
+                                   asp-action="Index">
+                                    Inter-Branch Transfers
+                                </a>
+                            </li>
+
                             <li class="nav-item">
                                 <a class="nav-link text-dark"
                                    asp-controller="FinePolicies"
@@ -106,6 +132,7 @@
                             </li>
                         }
 
+                        <!-- RECEPTION NAVIGATION -->
                         @if (User.IsInRole("Reception"))
                         {
                             <li class="nav-item">
@@ -133,6 +160,7 @@
                             </li>
                         }
 
+                        <!-- MANAGER NAVIGATION -->
                         @if (User.IsInRole("Manager"))
                         {
                             <li class="nav-item">
@@ -162,28 +190,37 @@
 
                     </ul>
 
-                    <partial name="_LoginPartial" />
+                    <!-- Login and Logout -->
+                    <div class="ms-lg-auto">
+                        <partial name="_LoginPartial" />
+                    </div>
 
                 </div>
             </div>
         </nav>
     </header>
 
+    <!-- Main Page Content -->
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
 
+    <!-- Footer -->
     <footer class="border-top footer text-muted">
         <div class="container">
             &copy; 2026 - LibraryManagementSystem
         </div>
     </footer>
 
+    <!-- JavaScript -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script src="~/js/site.js"
+            asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
