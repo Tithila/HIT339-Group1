@@ -47,6 +47,8 @@ builder.Services.AddScoped<
     BorrowerEligibilityService>();
 
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Multi-branch transfer service
 builder.Services.AddScoped<ITransferService, TransferService>();
@@ -97,6 +99,10 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
+
+    app.UseSwagger();
+    app.UseSwaggerUI();
+
 }
 else
 {
@@ -113,6 +119,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
+app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",
