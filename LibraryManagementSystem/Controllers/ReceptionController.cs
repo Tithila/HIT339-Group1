@@ -19,6 +19,7 @@ public class ReceptionController : Controller
     private readonly INotificationService _notificationService;
     private readonly IPaymentService _paymentService;
     private readonly SquareSettings _squareSettings;
+    private readonly IReservationService _reservationService;
 
     public ReceptionController(
         ApplicationDbContext context,
@@ -27,7 +28,8 @@ public class ReceptionController : Controller
         IAuditService auditService,
         INotificationService notificationService,
         IPaymentService paymentService,
-        IOptions<SquareSettings> squareOptions)
+        IOptions<SquareSettings> squareOptions,
+        IReservationService reservationService)
     {
         _context = context;
         _fineCalculator = fineCalculator;
@@ -36,6 +38,7 @@ public class ReceptionController : Controller
         _notificationService = notificationService;
         _paymentService = paymentService;
         _squareSettings = squareOptions.Value;
+        _reservationService = reservationService;
     }
 
     // =========================================================
@@ -283,6 +286,12 @@ public class ReceptionController : Controller
 
         await _context.SaveChangesAsync();
 
+        if (item.Status == ItemStatus.Available)
+        {
+            await _reservationService.PromoteNextAsync(item.Id);
+        }
+
+        // Recheck borrower eligibility after the return.
         await _borrowerEligibilityService
             .CheckAndUpdateSuspensionAsync(
                 loan.BorrowerId);

@@ -1,0 +1,49 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - link "LibraryManagementSystem" [ref=e5] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e6]:
+          - list [ref=e7]:
+            - listitem [ref=e8]:
+              - link "Home" [ref=e9] [cursor=pointer]:
+                - /url: /
+            - listitem [ref=e10]:
+              - link "Library Search" [ref=e11] [cursor=pointer]:
+                - /url: /Public/Search
+            - listitem [ref=e12]:
+              - link "Kiosk" [ref=e13] [cursor=pointer]:
+                - /url: /Kiosk
+            - listitem [ref=e14]:
+              - link "Request an Item" [ref=e15] [cursor=pointer]:
+                - /url: /Public/RequestItem
+          - list [ref=e17]:
+            - listitem [ref=e18]:
+              - link "Register" [ref=e19] [cursor=pointer]:
+                - /url: /Identity/Account/Register
+            - listitem [ref=e20]:
+              - link "Login" [ref=e21] [cursor=pointer]:
+                - /url: /Identity/Account/Login
+  - main [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - heading "Library Management System" [level=1] [ref=e26]
+        - paragraph [ref=e27]: Search library items, manage borrowing and returns, monitor fines, review item conditions, and keep library operations organised.
+        - generic [ref=e28]:
+          - link "Search Library" [ref=e29] [cursor=pointer]:
+            - /url: /Public/Search
+          - link "Request an Item" [ref=e30] [cursor=pointer]:
+            - /url: /Public/RequestItem
+      - generic [ref=e31]:
+        - generic [ref=e34]:
+          - heading "Public Access" [level=4] [ref=e35]
+          - paragraph [ref=e36]: Search the catalogue, check item availability and submit suggestions for items you would like the library to acquire.
+        - generic [ref=e39]:
+          - heading "Library Operations" [level=4] [ref=e40]
+          - paragraph [ref=e41]: Staff can manage borrowing, returns, overdue fines, borrower eligibility and item condition inspections.
+        - generic [ref=e44]:
+          - heading "Management" [level=4] [ref=e45]
+          - paragraph [ref=e46]: Managers can review live statistics, damaged and destroyed items, repair costs, replacement losses and audit records.
+  - contentinfo [ref=e47]:
+    - generic [ref=e48]: © 2026 - LibraryManagementSystem

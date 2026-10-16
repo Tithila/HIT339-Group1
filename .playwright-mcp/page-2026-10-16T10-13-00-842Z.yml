@@ -1,0 +1,124 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - navigation [ref=e3]:
+      - generic [ref=e4]:
+        - link "LibraryManagementSystem" [ref=e5] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e6]:
+          - list [ref=e7]:
+            - listitem [ref=e8]:
+              - link "Home" [ref=e9] [cursor=pointer]:
+                - /url: /
+            - listitem [ref=e10]:
+              - link "Library Search" [ref=e11] [cursor=pointer]:
+                - /url: /Public/Search
+            - listitem [ref=e12]:
+              - link "Kiosk" [ref=e13] [cursor=pointer]:
+                - /url: /Kiosk
+            - listitem [ref=e14]:
+              - link "Request an Item" [ref=e15] [cursor=pointer]:
+                - /url: /Public/RequestItem
+          - list [ref=e17]:
+            - listitem [ref=e18]:
+              - link "Register" [ref=e19] [cursor=pointer]:
+                - /url: /Identity/Account/Register
+            - listitem [ref=e20]:
+              - link "Login" [ref=e21] [cursor=pointer]:
+                - /url: /Identity/Account/Login
+  - main [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - heading "Search Library" [level=1] [ref=e26]
+        - paragraph [ref=e27]: Search the catalogue by name, library code, item type, or availability.
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - generic [ref=e32]: Search
+          - textbox "Name, code or description" [ref=e33]
+        - generic [ref=e34]:
+          - generic [ref=e35]: Item Type
+          - combobox [ref=e36]:
+            - option "All Types" [selected]
+            - option "Book"
+            - option "Music"
+            - option "Toy"
+        - generic [ref=e37]:
+          - generic [ref=e38]: Status
+          - combobox [ref=e39]:
+            - option "All Statuses" [selected]
+            - option "Available"
+            - option "Borrowed"
+            - option "Damaged"
+            - option "Destroy"
+        - button "Search" [ref=e41] [cursor=pointer]
+      - generic [ref=e42]:
+        - heading "Search Results" [level=4] [ref=e43]
+        - generic [ref=e44]: 6 item(s) found
+      - generic [ref=e45]:
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - heading "1984" [level=5] [ref=e50]
+            - button "Available" [ref=e51] [cursor=pointer]
+          - paragraph [ref=e52]: Dystopian novel
+          - generic [ref=e53]:
+            - text: LIBRARY CODE
+            - generic [ref=e54]: BK002
+          - generic [ref=e55]:
+            - text: ITEM TYPE
+            - generic [ref=e56]: Book
+        - generic [ref=e59]:
+          - generic [ref=e60]:
+            - heading "25" [level=5] [ref=e61]
+            - button "Available" [ref=e62] [cursor=pointer]
+          - paragraph [ref=e63]: Music album
+          - generic [ref=e64]:
+            - text: LIBRARY CODE
+            - generic [ref=e65]: MU002
+          - generic [ref=e66]:
+            - text: ITEM TYPE
+            - generic [ref=e67]: Music
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - heading "Chess Set" [level=5] [ref=e72]
+            - button "Available" [ref=e73] [cursor=pointer]
+          - paragraph [ref=e74]: Strategy board game
+          - generic [ref=e75]:
+            - text: LIBRARY CODE
+            - generic [ref=e76]: TY002
+          - generic [ref=e77]:
+            - text: ITEM TYPE
+            - generic [ref=e78]: Toy
+        - generic [ref=e81]:
+          - generic [ref=e82]:
+            - heading "Lego Set" [level=5] [ref=e83]
+            - button "Available" [ref=e84] [cursor=pointer]
+          - paragraph [ref=e85]: Building toy
+          - generic [ref=e86]:
+            - text: LIBRARY CODE
+            - generic [ref=e87]: TY001
+          - generic [ref=e88]:
+            - text: ITEM TYPE
+            - generic [ref=e89]: Toy
+        - generic [ref=e92]:
+          - generic [ref=e93]:
+            - heading "The Hobbit" [level=5] [ref=e94]
+            - button "Available" [ref=e95] [cursor=pointer]
+          - paragraph [ref=e96]: Fantasy novel
+          - generic [ref=e97]:
+            - text: LIBRARY CODE
+            - generic [ref=e98]: BK001
+          - generic [ref=e99]:
+            - text: ITEM TYPE
+            - generic [ref=e100]: Book
+        - generic [ref=e103]:
+          - generic [ref=e104]:
+            - heading "Thriller" [level=5] [ref=e105]
+            - button "Available" [ref=e106] [cursor=pointer]
+          - paragraph [ref=e107]: Music album
+          - generic [ref=e108]:
+            - text: LIBRARY CODE
+            - generic [ref=e109]: MU001
+          - generic [ref=e110]:
+            - text: ITEM TYPE
+            - generic [ref=e111]: Music
+  - contentinfo [ref=e112]:
+    - generic [ref=e113]: © 2026 - LibraryManagementSystem

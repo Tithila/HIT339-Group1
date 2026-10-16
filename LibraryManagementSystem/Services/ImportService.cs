@@ -52,7 +52,7 @@ namespace LibraryManagementSystem.Services
 
             var csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
             {
-                PrepareHeaderForMatch = args => args.Header?.Trim(),
+                PrepareHeaderForMatch = args => args.Header?.Trim() ?? string.Empty,
                 MissingFieldFound = null,
                 BadDataFound = null,
                 HeaderValidated = null,
@@ -69,7 +69,7 @@ namespace LibraryManagementSystem.Services
 
             while (await csv.ReadAsync())
             {
-                var rowNum = csv.Context.Parser.Row;
+                var rowNum = csv.Context.Parser?.Row ?? 0;
 
                 ImportItemDto? dto = null;
                 try
@@ -161,7 +161,7 @@ namespace LibraryManagementSystem.Services
                             : new Toy();
 
                     item.Name = dto.Name ?? string.Empty;
-                    item.Description = dto.Description;
+                    item.Description = dto.Description ?? string.Empty;
                     item.LibraryCode = dto.LibraryCode ?? string.Empty;
                     item.Status = Enum.TryParse<ItemStatus>(dto.Status ?? "Available", true, out var st) ? st : ItemStatus.Available;
 
@@ -171,17 +171,17 @@ namespace LibraryManagementSystem.Services
 
                     if (item is Book book)
                     {
-                        book.Author = dto.Author;
-                        book.Genre = dto.Genre;
+                        book.Author = dto.Author ?? string.Empty;
+                        book.Genre = dto.Genre ?? string.Empty;
                     }
                     else if (item is Music music)
                     {
-                        music.Artist = dto.Artist;
+                        music.Artist = dto.Artist ?? string.Empty;
                         music.Year = dto.Year ?? 0;
                     }
                     else if (item is Toy toy)
                     {
-                        toy.Type = dto.Type;
+                        toy.Type = dto.Type ?? string.Empty;
                         toy.RecommendedAge = dto.RecommendedAge ?? 0;
                     }
 

@@ -46,6 +46,7 @@ builder.Services
 // =========================================================
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddMemoryCache();
 
 // =========================================================
 // SQUARE CONFIGURATION
@@ -53,19 +54,6 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.Configure<SquareSettings>(
     builder.Configuration.GetSection("Square"));
-
-// =========================================================
-// SESSION
-// =========================================================
-
-// Used by the self-service kiosk to remember
-// the verified borrower between screens.
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(10);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
 
 // =========================================================
 // CORE LIBRARY SERVICES
@@ -212,9 +200,6 @@ else
 app.UseHttpsRedirection();
 
 app.UseRouting();
-
-// Kiosk session must be available before controller actions.
-app.UseSession();
 
 // Identity authentication / authorization.
 app.UseAuthentication();
