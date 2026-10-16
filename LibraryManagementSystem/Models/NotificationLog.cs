@@ -16,7 +16,9 @@ public enum NotificationType
     DueSoon,
     Overdue,
     Fine,
-    ReservationReady
+    ReservationReady,
+    Welcome
+
 }
 
 public enum NotificationStatus
@@ -50,4 +52,5 @@ public class NotificationLog
     public NotificationStatus Status { get; set; }
         = NotificationStatus.Simulated;
 }
+
 
