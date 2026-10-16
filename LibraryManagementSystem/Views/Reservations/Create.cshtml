@@ -1,0 +1,56 @@
+﻿@{
+    ViewData["Title"] = "Create Reservation";
+}
+
+<h1>Create Reservation</h1>
+
+<p>
+    Reserve an item that is currently borrowed or damaged.
+</p>
+
+<div asp-validation-summary="All"
+     class="text-danger"></div>
+
+<form asp-controller="Reservations"
+      asp-action="Create"
+      method="post">
+
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label for="itemId" class="form-label">
+            Library Item
+        </label>
+
+        <select id="itemId"
+                name="itemId"
+                asp-items="ViewBag.Items"
+                class="form-select"
+                required>
+            <option value="">Select an item</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="borrowerId" class="form-label">
+            Borrower
+        </label>
+
+        <select id="borrowerId"
+                name="borrowerId"
+                asp-items="ViewBag.Borrowers"
+                class="form-select"
+                required>
+            <option value="">Select a borrower</option>
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">
+        Place Reservation
+    </button>
+
+    <a asp-action="Index"
+       class="btn btn-secondary">
+        Cancel
+    </a>
+</form>

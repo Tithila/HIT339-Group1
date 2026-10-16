@@ -1,0 +1,75 @@
+﻿@model IEnumerable<LibraryManagementSystem.Models.Reservation>
+
+@{
+    ViewData["Title"] = "Reservations";
+}
+
+<h1>Reservation Management</h1>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
+
+<a asp-action="Create" class="btn btn-primary mb-3">
+    Create Reservation
+</a>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Borrower</th>
+            <th>Requested</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var reservation in Model)
+        {
+            <tr>
+                <td>@reservation.Item?.Name</td>
+                <td>@reservation.Borrower?.FullName</td>
+                <td>
+                    @reservation.RequestedDate.ToString("dd MMM yyyy")
+                </td>
+                <td>@reservation.Status</td>
+                <td>
+                    <a asp-action="Waitlist"
+                       asp-route-id="@reservation.ItemId"
+                       class="btn btn-sm btn-outline-primary">
+                        Waitlist
+                    </a>
+
+                    @if (reservation.Status ==
+                        LibraryManagementSystem.Models.ReservationStatus.Waiting ||
+                        reservation.Status ==
+                        LibraryManagementSystem.Models.ReservationStatus.ReadyForPickup)
+                    {
+                        <form asp-action="Cancel"
+                              asp-route-id="@reservation.Id"
+                              method="post"
+                              class="d-inline">
+                            @Html.AntiForgeryToken()
+
+                            <button type="submit"
+                                    class="btn btn-sm btn-danger">
+                                Cancel
+                            </button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

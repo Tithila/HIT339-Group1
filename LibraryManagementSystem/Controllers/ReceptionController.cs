@@ -1,4 +1,5 @@
-﻿using LibraryManagementSystem.Data;
+﻿
+using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Models;
 using LibraryManagementSystem.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -15,17 +16,20 @@ public class ReceptionController : Controller
     private readonly IFineCalculator _fineCalculator;
     private readonly IBorrowerEligibilityService _borrowerEligibilityService;
     private readonly IAuditService _auditService;
+    private readonly INotificationService _notificationService;
 
     public ReceptionController(
         ApplicationDbContext context,
         IFineCalculator fineCalculator,
         IBorrowerEligibilityService borrowerEligibilityService,
-        IAuditService auditService)
+        IAuditService auditService,
+        INotificationService notificationService)
     {
         _context = context;
         _fineCalculator = fineCalculator;
         _borrowerEligibilityService = borrowerEligibilityService;
         _auditService = auditService;
+        _notificationService = notificationService;
     }
 
     // GET: Reception/Borrow
@@ -60,7 +64,8 @@ public class ReceptionController : Controller
         }
 
         var item = await _context.Items
-            .FirstOrDefaultAsync(i => i.LibraryCode == model.LibraryCode);
+            .FirstOrDefaultAsync(i =>
+                i.LibraryCode == model.LibraryCode);
 
         if (item == null)
         {
@@ -80,8 +85,24 @@ public class ReceptionController : Controller
             return View(model);
         }
 
+        // Prevent borrowing an item held for a reservation.
+        var reservedForPickup = await _context.Reservations
+            .AnyAsync(r =>
+                r.ItemId == item.Id &&
+                r.Status == ReservationStatus.ReadyForPickup);
+
+        if (reservedForPickup)
+        {
+            ModelState.AddModelError(
+                nameof(model.LibraryCode),
+                "This item is reserved for pickup and cannot be borrowed through the normal checkout process.");
+
+            return View(model);
+        }
+
         var borrower = await _context.Borrowers
-            .FirstOrDefaultAsync(b => b.Id == model.BorrowerId);
+            .FirstOrDefaultAsync(b =>
+                b.Id == model.BorrowerId);
 
         if (borrower == null)
         {
@@ -124,6 +145,26 @@ public class ReceptionController : Controller
             $"{item.Name} ({item.LibraryCode}) borrowed by {borrower.FullName}",
             User.Identity?.Name);
 
+        // Shereena: Simulated borrowing notification.
+        // Notification failure must not undo a completed loan.
+        try
+        {
+            await _notificationService.SendAsync(
+                borrower.Id,
+                borrower.Email,
+                NotificationChannel.Email,
+                NotificationType.Borrowed,
+                $"Hello {borrower.FullName}, " +
+                $"you borrowed '{item.Name}' " +
+                $"({item.LibraryCode}). " +
+                $"Your due date is {loan.DueDate:dd MMM yyyy}.");
+        }
+        catch (Exception)
+        {
+            TempData["NotificationWarning"] =
+                "The item was borrowed successfully, but the notification could not be recorded.";
+        }
+
         TempData["SuccessMessage"] =
             $"{item.Name} has been borrowed by {borrower.FullName}.";
 
@@ -147,7 +188,8 @@ public class ReceptionController : Controller
         }
 
         var item = await _context.Items
-            .FirstOrDefaultAsync(i => i.LibraryCode == model.LibraryCode);
+            .FirstOrDefaultAsync(i =>
+                i.LibraryCode == model.LibraryCode);
 
         if (item == null)
         {
@@ -182,7 +224,7 @@ public class ReceptionController : Controller
         loan.FineAmount =
             await _fineCalculator.CalculateFineAsync(loan);
 
-        // Set item status based on return condition.
+        // Preserve Kinley's existing return condition logic.
         item.Status = model.Condition switch
         {
             ItemConditionResult.Good => ItemStatus.Available,
@@ -206,11 +248,11 @@ public class ReceptionController : Controller
 
         await _context.SaveChangesAsync();
 
-        // Recheck suspension after return/fine update.
+        // Recheck borrower eligibility after the return.
         await _borrowerEligibilityService
             .CheckAndUpdateSuspensionAsync(loan.BorrowerId);
 
-        // Record return in Audit Log.
+        // Preserve existing audit logging.
         await _auditService.LogAsync(
             "Return",
             "Loan",
@@ -221,6 +263,29 @@ public class ReceptionController : Controller
             $"Repair Cost: ${model.RepairCost:F2}. " +
             $"Replacement Cost: ${model.ReplacementCost:F2}.",
             User.Identity?.Name);
+
+        // Shereena: Simulated fine notification.
+        if (loan.FineAmount > 0 &&
+            loan.Borrower != null)
+        {
+            try
+            {
+                await _notificationService.SendAsync(
+                    loan.BorrowerId,
+                    loan.Borrower.Email,
+                    NotificationChannel.Email,
+                    NotificationType.Fine,
+                    $"Hello {loan.Borrower.FullName}, " +
+                    $"your returned library item '{item.Name}' " +
+                    $"has an outstanding fine of " +
+                    $"${loan.FineAmount:F2}.");
+            }
+            catch (Exception)
+            {
+                TempData["NotificationWarning"] =
+                    "The return was processed, but the fine notification could not be recorded.";
+            }
+        }
 
         TempData["SuccessMessage"] =
             $"{item.Name} returned successfully. " +
@@ -236,7 +301,8 @@ public class ReceptionController : Controller
         var fines = await _context.Loans
             .Include(l => l.Borrower)
             .Include(l => l.Item)
-            .Where(l => l.FineAmount > 0 && !l.FinePaid)
+            .Where(l =>
+                l.FineAmount > 0 && !l.FinePaid)
             .OrderByDescending(l => l.ReturnDate)
             .Select(l => new FinePaymentViewModel
             {
@@ -270,7 +336,8 @@ public class ReceptionController : Controller
         var loan = await _context.Loans
             .Include(l => l.Borrower)
             .Include(l => l.Item)
-            .FirstOrDefaultAsync(l => l.Id == loanId);
+            .FirstOrDefaultAsync(l =>
+                l.Id == loanId);
 
         if (loan == null)
         {

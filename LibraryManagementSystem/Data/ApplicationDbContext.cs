@@ -9,7 +9,7 @@ namespace LibraryManagementSystem.Data
         DbContextOptions<ApplicationDbContext> options)
         : IdentityDbContext(options)
     {
-        // Existing library management tables
+        // Existing Library Management System
         public DbSet<Item> Items { get; set; }
         public DbSet<Book> Books { get; set; }
         public DbSet<Music> MusicItems { get; set; }
@@ -21,66 +21,96 @@ namespace LibraryManagementSystem.Data
         public DbSet<ItemRequest> ItemRequests { get; set; }
         public DbSet<ReturnInspection> ReturnInspections { get; set; }
 
-        // Multi-branch inventory
+        // Anjana: Multi-Branch Inventory
         public DbSet<Branch> Branches { get; set; }
 
-        // Inter-branch transfer requests
+        // Anjana: Inter-Branch Transfers
         public DbSet<TransferRequest> TransferRequests { get; set; }
+
+        // Shereena: Automated Notifications
+        public DbSet<NotificationLog> NotificationLogs { get; set; }
+
+        // Shereena: Reservation and Waitlist
+        public DbSet<Reservation> Reservations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
-            // Each borrower must have a unique library card number.
-            // Borrowers without a card number are permitted.
+            // Unique library item codes
+            builder.Entity<Item>()
+                .HasIndex(i => i.LibraryCode)
+                .IsUnique();
+
+            // Unique borrower card numbers
             builder.Entity<Borrower>()
                 .HasIndex(b => b.LibraryCardNumber)
                 .IsUnique()
                 .HasFilter("[LibraryCardNumber] IS NOT NULL");
 
-            // Each branch must have a unique code.
+            // Anjana: Unique branch codes
             builder.Entity<Branch>()
                 .HasIndex(b => b.Code)
                 .IsUnique();
 
-            // Each library item belongs to one branch.
-            // A branch can contain multiple items.
+            // Anjana: Item and Branch relationship
             builder.Entity<Item>()
                 .HasOne(i => i.Branch)
                 .WithMany(b => b.Items)
                 .HasForeignKey(i => i.BranchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Library codes must be unique.
-            builder.Entity<Item>()
-                .HasIndex(i => i.LibraryCode)
-                .IsUnique();
-
-            // Inter-branch transfer relationships.
+            // Anjana: Transfer relationships
             builder.Entity<TransferRequest>(entity =>
             {
-                // The item being transferred.
                 entity.HasOne(t => t.Item)
                     .WithMany()
                     .HasForeignKey(t => t.ItemId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // The branch sending the item.
                 entity.HasOne(t => t.FromBranch)
                     .WithMany()
                     .HasForeignKey(t => t.FromBranchId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // The branch receiving the item.
                 entity.HasOne(t => t.ToBranch)
                     .WithMany()
                     .HasForeignKey(t => t.ToBranchId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Indexes for transfer searches.
                 entity.HasIndex(t => t.Status);
                 entity.HasIndex(t => t.ItemId);
             });
+
+            // Shereena: Reservation and Item relationship
+            builder.Entity<Reservation>()
+                .HasOne(r => r.Item)
+                .WithMany()
+                .HasForeignKey(r => r.ItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Shereena: Reservation and Borrower relationship
+            builder.Entity<Reservation>()
+                .HasOne(r => r.Borrower)
+                .WithMany()
+                .HasForeignKey(r => r.BorrowerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Shereena: Waitlist lookup index
+            builder.Entity<Reservation>()
+                .HasIndex(r => new
+                {
+                    r.ItemId,
+                    r.Status,
+                    r.RequestedDate
+                });
+
+            // Shereena: Notification and Borrower relationship
+            builder.Entity<NotificationLog>()
+                .HasOne(n => n.Borrower)
+                .WithMany()
+                .HasForeignKey(n => n.BorrowerId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }
