@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LibraryManagementSystem.Data;
 
+
 public static class LibraryDataSeeder
 {
     public static async Task SeedAsync(ApplicationDbContext context)

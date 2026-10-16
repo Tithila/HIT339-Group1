@@ -1,0 +1,36 @@
+@page
+@model LibraryManagementSystem.Pages.Admin.ImportModel
+@{
+    ViewData["Title"] = "CSV Import";
+}
+
+<div class="container py-4">
+    <div class="mb-4">
+        <h1 class="fw-bold mb-1">Import Library Items</h1>
+        <p class="text-muted mb-0">Upload a CSV file to preview and import new inventory items.</p>
+    </div>
+
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+    @if (TempData["ImportResult"] != null)
+    {
+        <div class="alert alert-info">@TempData["ImportResult"]</div>
+    }
+
+    @if (TempData["ImportError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ImportError"]</div>
+    }
+
+    <form method="post" enctype="multipart/form-data" asp-page-handler="Preview" class="card card-body shadow-sm border-0 rounded-4 mb-4">
+        <div class="mb-3">
+            <label asp-for="UploadFile" class="form-label fw-semibold">CSV file</label>
+            <input asp-for="UploadFile" type="file" accept=".csv,text/csv" class="form-control" required />
+            <div class="form-text">The CSV must include ItemType, Name, LibraryCode, and BranchCode columns.</div>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">Preview Import</button>
+            <a asp-controller="Manager" asp-action="Items" class="btn btn-outline-secondary ms-2">Back to Items</a>
+        </div>
+    </form>
+</div>

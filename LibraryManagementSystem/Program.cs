@@ -1,4 +1,3 @@
-
 using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Services;
 using Microsoft.AspNetCore.Identity;
@@ -38,6 +37,7 @@ builder.Services
 
 // MVC
 builder.Services.AddControllersWithViews();
+builder.Services.AddMemoryCache();
 
 // Existing library services
 builder.Services.AddScoped<IFineCalculator, FineCalculator>();
@@ -68,29 +68,112 @@ builder.Services.AddTransient<
     IEmailSender<IdentityUser>,
     DevelopmentEmailSender>();
 
+// Import and reporting services
+builder.Services.AddScoped<IImportService, ImportService>();
+builder.Services.AddScoped<IReportingService, ReportingService>();
+
+// Scheduled report generation (monthly PDF + weekly digest)
+builder.Services.AddHostedService<ScheduledReportService>();
+
 var app = builder.Build();
 
-// Apply database migrations and seed data
+// Apply database migrations, seed data, and create the development admin account
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    var context =
-        services.GetRequiredService<ApplicationDbContext>();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate(); // applies pending migrations
+    await LibraryDataSeeder.SeedAsync(db); // then run your seeder
 
-    try
+    var userManager = scope.ServiceProvider
+        .GetRequiredService<UserManager<IdentityUser>>();
+    var roleManager = scope.ServiceProvider
+        .GetRequiredService<RoleManager<IdentityRole>>();
+
+    const string adminRole = "Admin";
+    const string managerRole = "Manager";
+    const string adminEmail = "admin@library.local";
+    const string adminPassword = "P@ssw0rd!";
+
+    if (!await roleManager.RoleExistsAsync(adminRole))
     {
-        await context.Database.MigrateAsync();
-        await RoleSeeder.SeedRolesAsync(services);
-        await IdentitySeeder.SeedUsersAsync(services);
-        await LibraryDataSeeder.SeedAsync(context);
+        var roleResult = await roleManager.CreateAsync(
+            new IdentityRole(adminRole));
+
+        if (!roleResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                string.Join(
+                    "; ",
+                    roleResult.Errors.Select(error => error.Description)));
+        }
     }
-    catch (Exception ex)
-    {
-        app.Logger.LogError(
-            ex,
-            "Database initialization failed during application startup.");
 
-        throw;
+    if (!await roleManager.RoleExistsAsync(managerRole))
+    {
+        var roleResult = await roleManager.CreateAsync(
+            new IdentityRole(managerRole));
+
+        if (!roleResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                string.Join(
+                    "; ",
+                    roleResult.Errors.Select(error => error.Description)));
+        }
+    }
+
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+    if (adminUser == null)
+    {
+        adminUser = new IdentityUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            EmailConfirmed = true
+        };
+
+        var userResult = await userManager.CreateAsync(
+            adminUser,
+            adminPassword);
+
+        if (!userResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                string.Join(
+                    "; ",
+                    userResult.Errors.Select(error => error.Description)));
+        }
+    }
+
+    if (!await userManager.IsInRoleAsync(adminUser, adminRole))
+    {
+        var roleResult = await userManager.AddToRoleAsync(
+            adminUser,
+            adminRole);
+
+        if (!roleResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                string.Join(
+                    "; ",
+                    roleResult.Errors.Select(error => error.Description)));
+        }
+    }
+
+    if (!await userManager.IsInRoleAsync(adminUser, managerRole))
+    {
+        var roleResult = await userManager.AddToRoleAsync(
+            adminUser,
+            managerRole);
+
+        if (!roleResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                string.Join(
+                    "; ",
+                    roleResult.Errors.Select(error => error.Description)));
+        }
     }
 }
 

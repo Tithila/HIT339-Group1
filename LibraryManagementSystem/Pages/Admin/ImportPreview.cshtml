@@ -1,0 +1,87 @@
+@page
+@model LibraryManagementSystem.Pages.Admin.ImportPreviewModel
+@{
+    ViewData["Title"] = "Preview CSV Import";
+}
+
+<div class="container py-4">
+    <div class="mb-4">
+        <h1 class="fw-bold mb-1">Preview CSV Import</h1>
+        <p class="text-muted mb-0">Review the rows before adding them to the library inventory.</p>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 p-4">
+        <div class="d-flex flex-wrap gap-3 mb-4">
+            <span class="badge text-bg-secondary">Total: @Model.Preview!.TotalRows</span>
+            <span class="badge text-bg-success">Valid: @Model.Preview.ValidCount</span>
+            <span class="badge text-bg-danger">Invalid: @Model.Preview.InvalidCount</span>
+            <span class="badge text-bg-warning">Duplicates: @Model.Preview.DuplicateCount</span>
+        </div>
+
+        <h2 class="h5">Valid Rows</h2>
+        @if (Model.Preview.ValidRows.Count == 0)
+        {
+            <p class="text-muted">There are no valid rows to import.</p>
+        }
+        else
+        {
+            <div class="table-responsive mb-4">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr><th>Row</th><th>Library Code</th><th>Name</th><th>Type</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Preview.ValidRows)
+                        {
+                            <tr>
+                                <td>@row.RowNumber</td>
+                                <td>@row.Item?.LibraryCode</td>
+                                <td>@row.Item?.Name</td>
+                                <td>@row.Item?.ItemType</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <h2 class="h5">Rows requiring attention</h2>
+        @if (Model.Preview.InvalidRows.Count == 0 && Model.Preview.Duplicates.Count == 0)
+        {
+            <p class="text-muted">No invalid or duplicate rows were found.</p>
+        }
+        else
+        {
+            <div class="table-responsive mb-4">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr><th>Row</th><th>Library Code</th><th>Name</th><th>Errors</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Preview.InvalidRows)
+                        {
+                            <tr>
+                                <td>@row.RowNumber</td>
+                                <td>@row.Item?.LibraryCode</td>
+                                <td>@row.Item?.Name</td>
+                                <td>@string.Join("; ", row.Errors)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <div class="d-flex flex-wrap gap-2">
+            <form method="post" asp-page="/Admin/Import" asp-page-handler="Confirm">
+                <button type="submit" class="btn btn-success" @(Model.Preview.ValidCount == 0 ? "disabled" : null)>
+                    Confirm and Import Valid Rows
+                </button>
+            </form>
+            <form method="post" asp-page="/Admin/Import" asp-page-handler="DownloadErrors">
+                <button type="submit" class="btn btn-outline-secondary">Download Error Report (CSV)</button>
+            </form>
+            <a asp-page="/Admin/Import" class="btn btn-outline-primary">Choose Another File</a>
+        </div>
+    </div>
+</div>

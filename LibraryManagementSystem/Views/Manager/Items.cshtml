@@ -1,0 +1,70 @@
+@model IReadOnlyList<LibraryManagementSystem.Models.Item>
+
+@{
+    ViewData["Title"] = "Manage Items";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold mb-1">Library Items</h1>
+            <p class="text-muted mb-0">View inventory and update each item's status.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-page="/Admin/Import" class="btn btn-primary">Import</a>
+            <a asp-action="Index" class="btn btn-outline-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Name</th>
+                        <th>Library Code</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th class="pe-4 text-end">Update</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No items found.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-semibold">@item.Name</div>
+                                    <small class="text-muted">@item.Description</small>
+                                </td>
+                                <td>@item.LibraryCode</td>
+                                <td>@item.GetType().Name</td>
+                                <td>
+                                    <form id="update-item-@item.Id" asp-action="UpdateItemStatus" method="post">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        <select name="status" class="form-select form-select-sm" aria-label="Status for @item.Name">
+                                            <option value="Available" selected="@(item.Status == LibraryManagementSystem.Models.ItemStatus.Available)">Available</option>
+                                            <option value="Borrowed" selected="@(item.Status == LibraryManagementSystem.Models.ItemStatus.Borrowed)">Rented</option>
+                                            <option value="Damaged" selected="@(item.Status == LibraryManagementSystem.Models.ItemStatus.Damaged)">Damaged</option>
+                                            <option value="Destroy" selected="@(item.Status == LibraryManagementSystem.Models.ItemStatus.Destroy)">Destroyed</option>
+                                        </select>
+                                    </form>
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <button type="submit" form="update-item-@item.Id" class="btn btn-sm btn-primary">Save</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

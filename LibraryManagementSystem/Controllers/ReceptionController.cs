@@ -1,4 +1,5 @@
-﻿using LibraryManagementSystem.Data;
+﻿
+using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Models;
 using LibraryManagementSystem.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -90,7 +91,7 @@ public class ReceptionController : Controller
             return View(model);
         }
 
-        // Shereena: Protect reservations ready for pickup.
+        // Protect reservations ready for pickup.
         var reservedForPickup = await _context.Reservations
             .AnyAsync(r =>
                 r.ItemId == item.Id &&
@@ -171,7 +172,7 @@ public class ReceptionController : Controller
             $"borrowed by {borrower.FullName}",
             User.Identity?.Name);
 
-        // Shereena: Simulated borrowing confirmation.
+        // Simulated borrowing confirmation.
         try
         {
             await _notificationService.SendAsync(
@@ -253,7 +254,7 @@ public class ReceptionController : Controller
         loan.IsOverdue =
             loan.ReturnDate.Value.Date > loan.DueDate.Date;
 
-        // Preserve Kinley's fine calculation.
+        // Preserve existing fine calculation.
         loan.FineAmount =
             await _fineCalculator.CalculateFineAsync(loan);
 
@@ -298,7 +299,7 @@ public class ReceptionController : Controller
             $"Replacement Cost: ${model.ReplacementCost:F2}.",
             User.Identity?.Name);
 
-        // Shereena: Notify borrower if a fine is incurred.
+        // Notify borrower if a fine is incurred.
         if (loan.FineAmount > 0 &&
             loan.Borrower != null)
         {
@@ -327,7 +328,7 @@ public class ReceptionController : Controller
             }
         }
 
-        // SHEREENA: AUTOMATIC WAITLIST PROMOTION
+        // AUTOMATIC WAITLIST PROMOTION
         // Promote only if the item is returned in good condition.
         if (item.Status == ItemStatus.Available)
         {

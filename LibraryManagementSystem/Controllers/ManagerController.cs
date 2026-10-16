@@ -1,5 +1,6 @@
 ﻿using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Models;
+using LibraryManagementSystem.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
@@ -10,10 +11,12 @@ namespace LibraryManagementSystem.Controllers;
 public class ManagerController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly IReportingService _reporting;
 
-    public ManagerController(ApplicationDbContext context)
+    public ManagerController(ApplicationDbContext context, IReportingService reporting)
     {
         _context = context;
+        _reporting = reporting;
     }
 
     public async Task<IActionResult> Index()
@@ -64,6 +67,68 @@ public class ManagerController : Controller
                 .SumAsync(r => r.ReplacementCost)
         };
 
+        // Populate analytics using ReportingService
+        model.MonthlyLoans = await _reporting.GetMonthlyLoansAsync(12);
+        model.LoansByBranch = await _reporting.GetLoansByBranchAsync();
+        model.InventoryHealth = await _reporting.GetInventoryHealthAsync();
+        model.ReservationDemand = await _reporting.GetReservationDemandAsync(10);
+
         return View(model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Items()
+    {
+        var items = await _context.Items
+            .OrderBy(i => i.Name)
+            .ThenBy(i => i.LibraryCode)
+            .ToListAsync();
+
+        return View(items);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateItemStatus(int id, ItemStatus status)
+    {
+        if (!Enum.IsDefined(status))
+        {
+            return BadRequest();
+        }
+
+        var item = await _context.Items.FindAsync(id);
+        if (item == null)
+        {
+            return NotFound();
+        }
+
+        item.Status = status;
+        await _context.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Items));
+    }
+
+    // CSV export endpoints
+    [HttpGet]
+    public async Task<IActionResult> ExportItemsCsv(bool anonymize = false)
+    {
+        var csv = await _reporting.ExportCsvAsync("Items", anonymize);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+        return File(bytes, "text/csv", "items_export.csv");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportAuditCsv()
+    {
+        var csv = await _reporting.ExportCsvAsync("AuditLog");
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+        return File(bytes, "text/csv", "audit_export.csv");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportReportPdf(string reportName = "MonthlyManagerReport", bool anonymize = false)
+    {
+        var pdf = await _reporting.ExportPdfAsync(reportName, anonymize);
+        return File(pdf, "application/pdf", $"{reportName}.pdf");
     }
 }

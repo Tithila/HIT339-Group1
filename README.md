@@ -13,3 +13,5 @@ To run this project locally on your computer please ensure you have the followin
 2. Right click on: Solution 'LibraryManagementSystem' (The entry at the top of the list in the Solutions Explorer) and select "Restore NuGet Packages"
 3. Go to Tools > NuGet Package Manager > Package Manager Console and run: Update-Database in the console that opens.
 4. Hit F5 or the green play button towards the top of Visual Studio to start the server and your default browser will open automatically and launch the application.
+
+OR watch the following step by step guide: https://youtu.be/tY5e9cITYz8
