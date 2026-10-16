@@ -7,9 +7,13 @@
 <div class="container py-4">
 
     <div class="mb-4">
-        <h1 class="fw-bold mb-1">Search Library</h1>
+        <h1 class="fw-bold mb-1">
+            Search Library
+        </h1>
+
         <p class="text-muted mb-0">
-            Search the catalogue by name, library code, item type, or availability.
+            Search the catalogue by name, library code,
+            item type, availability, and branch location.
         </p>
     </div>
 
@@ -40,7 +44,9 @@
                     <select name="itemType"
                             class="form-select">
 
-                        <option value="">All Types</option>
+                        <option value="">
+                            All Types
+                        </option>
 
                         <option value="Book"
                                 selected="@(Model.ItemType == "Book")">
@@ -68,9 +74,12 @@
                     <select name="status"
                             class="form-select">
 
-                        <option value="">All Statuses</option>
+                        <option value="">
+                            All Statuses
+                        </option>
 
-                        @foreach (var status in Enum.GetValues<LibraryManagementSystem.Models.ItemStatus>())
+                        @foreach (var status in
+                            Enum.GetValues<LibraryManagementSystem.Models.ItemStatus>())
                         {
                             <option value="@status"
                                     selected="@(Model.Status == status)">
@@ -102,6 +111,7 @@
     else
     {
         <div class="d-flex justify-content-between align-items-center mb-3">
+
             <h4 class="fw-semibold mb-0">
                 Search Results
             </h4>
@@ -109,6 +119,7 @@
             <span class="text-muted">
                 @Model.Results.Count item(s) found
             </span>
+
         </div>
 
         <div class="row g-4">
@@ -121,25 +132,28 @@
 
                         <div class="card-body p-4">
 
-                            <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
 
                                 <h5 class="fw-bold mb-0">
                                     @item.Name
                                 </h5>
 
-                                @if (item.Status == LibraryManagementSystem.Models.ItemStatus.Available)
+                                @if (item.Status ==
+                                    LibraryManagementSystem.Models.ItemStatus.Available)
                                 {
                                     <span class="badge bg-success">
                                         Available
                                     </span>
                                 }
-                                else if (item.Status == LibraryManagementSystem.Models.ItemStatus.Borrowed)
+                                else if (item.Status ==
+                                    LibraryManagementSystem.Models.ItemStatus.Borrowed)
                                 {
                                     <span class="badge bg-primary">
                                         Borrowed
                                     </span>
                                 }
-                                else if (item.Status == LibraryManagementSystem.Models.ItemStatus.Damaged)
+                                else if (item.Status ==
+                                    LibraryManagementSystem.Models.ItemStatus.Damaged)
                                 {
                                     <span class="badge bg-warning text-dark">
                                         Damaged
@@ -158,7 +172,8 @@
                                 @item.Description
                             </p>
 
-                            <div class="mb-2">
+                            <div class="mb-3">
+
                                 <span class="text-muted small">
                                     LIBRARY CODE
                                 </span>
@@ -166,16 +181,35 @@
                                 <div class="fw-semibold">
                                     @item.LibraryCode
                                 </div>
+
                             </div>
 
-                            <div>
-                                <span class="text-muted small">
-                                    ITEM TYPE
-                                </span>
+                            <div class="row g-3">
 
-                                <div class="fw-semibold">
-                                    @item.GetType().Name
+                                <div class="col-6">
+
+                                    <span class="text-muted small">
+                                        ITEM TYPE
+                                    </span>
+
+                                    <div class="fw-semibold">
+                                        @item.GetType().Name
+                                    </div>
+
                                 </div>
+
+                                <div class="col-6">
+
+                                    <span class="text-muted small">
+                                        BRANCH
+                                    </span>
+
+                                    <div class="fw-semibold">
+                                        @(item.Branch?.Name ?? "Not assigned")
+                                    </div>
+
+                                </div>
+
                             </div>
 
                         </div>
