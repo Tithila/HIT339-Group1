@@ -1,21 +1,23 @@
-using System.Text;
-using System.Text.Json;
 using LibraryManagementSystem.Services;
 using LibraryManagementSystem.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace LibraryManagementSystem.Pages.Admin;
 
 [Authorize(Roles = "Admin")]
 public class ImportModel : PageModel
 {
+    private static readonly TimeSpan PreviewLifetime = TimeSpan.FromMinutes(20);
     private readonly IImportService _importService;
+    private readonly IMemoryCache _cache;
 
-    public ImportModel(IImportService importService)
+    public ImportModel(IImportService importService, IMemoryCache cache)
     {
         _importService = importService;
+        _cache = cache;
     }
 
     [BindProperty]
@@ -38,8 +40,9 @@ public class ImportModel : PageModel
         try
         {
             Preview = await _importService.PreviewImportAsync(UploadFile);
-            // store preview in TempData as JSON for confirmation
-            TempData["ImportPreview"] = JsonSerializer.Serialize(Preview);
+            var previewId = Guid.NewGuid().ToString("N");
+            _cache.Set(GetPreviewCacheKey(previewId), Preview, PreviewLifetime);
+            TempData["ImportPreviewId"] = previewId;
         }
         catch (Exception ex)
         {
@@ -51,20 +54,22 @@ public class ImportModel : PageModel
 
     public async Task<IActionResult> OnPostConfirmAsync()
     {
-        if (!TempData.TryGetValue("ImportPreview", out var obj) || obj == null)
+        if (!TempData.TryGetValue("ImportPreviewId", out var obj) || obj == null)
         {
             ModelState.AddModelError(string.Empty, "No preview available to confirm. Please upload and preview again.");
             return Page();
         }
 
-        var json = obj.ToString();
-        var preview = JsonSerializer.Deserialize<ImportPreviewViewModel>(json ?? string.Empty);
-        if (preview == null)
+        var previewId = obj.ToString();
+        if (string.IsNullOrEmpty(previewId) ||
+            !_cache.TryGetValue(GetPreviewCacheKey(previewId), out ImportPreviewViewModel? preview) ||
+            preview == null)
         {
-            ModelState.AddModelError(string.Empty, "Preview deserialization failed.");
+            ModelState.AddModelError(string.Empty, "The preview has expired. Please upload and preview the CSV again.");
             return Page();
         }
 
+        _cache.Remove(GetPreviewCacheKey(previewId));
         var result = await _importService.ConfirmImportAsync(preview);
         TempData["ImportResult"] = $"Imported: {result.ImportedCount}, Failed: {result.FailedCount}";
 
@@ -73,15 +78,12 @@ public class ImportModel : PageModel
 
     public IActionResult OnPostDownloadErrors()
     {
-        var json = TempData.Peek("ImportPreview") as string;
-        if (string.IsNullOrEmpty(json))
+        var previewId = TempData.Peek("ImportPreviewId") as string;
+        if (string.IsNullOrEmpty(previewId) ||
+            !_cache.TryGetValue(GetPreviewCacheKey(previewId), out ImportPreviewViewModel? preview) ||
+            preview == null)
         {
-            return RedirectToPage();
-        }
-
-        var preview = JsonSerializer.Deserialize<ImportPreviewViewModel>(json ?? string.Empty);
-        if (preview == null)
-        {
+            TempData["ImportError"] = "The preview has expired. Please upload and preview the CSV again.";
             return RedirectToPage();
         }
 
@@ -98,4 +100,7 @@ public class ImportModel : PageModel
         var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
         return new FileContentResult(bytes, "text/csv") { FileDownloadName = "import_errors.csv" };
     }
+
+    private static string GetPreviewCacheKey(string previewId) =>
+        $"ImportPreview:{previewId}";
 }

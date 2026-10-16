@@ -37,6 +37,7 @@ builder.Services
 
 // MVC
 builder.Services.AddControllersWithViews();
+builder.Services.AddMemoryCache();
 
 // Existing library services
 builder.Services.AddScoped<IFineCalculator, FineCalculator>();
