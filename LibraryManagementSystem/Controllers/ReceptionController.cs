@@ -1,11 +1,11 @@
-﻿
-using LibraryManagementSystem.Data;
+﻿using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Models;
 using LibraryManagementSystem.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
 
 namespace LibraryManagementSystem.Controllers;
 
@@ -17,6 +17,8 @@ public class ReceptionController : Controller
     private readonly IBorrowerEligibilityService _borrowerEligibilityService;
     private readonly IAuditService _auditService;
     private readonly INotificationService _notificationService;
+    private readonly IPaymentService _paymentService;
+    private readonly SquareSettings _squareSettings;
     private readonly IReservationService _reservationService;
 
     public ReceptionController(
@@ -25,6 +27,8 @@ public class ReceptionController : Controller
         IBorrowerEligibilityService borrowerEligibilityService,
         IAuditService auditService,
         INotificationService notificationService,
+        IPaymentService paymentService,
+        IOptions<SquareSettings> squareOptions,
         IReservationService reservationService)
     {
         _context = context;
@@ -32,8 +36,14 @@ public class ReceptionController : Controller
         _borrowerEligibilityService = borrowerEligibilityService;
         _auditService = auditService;
         _notificationService = notificationService;
+        _paymentService = paymentService;
+        _squareSettings = squareOptions.Value;
         _reservationService = reservationService;
     }
+
+    // =========================================================
+    // BORROW
+    // =========================================================
 
     // GET: Reception/Borrow
     public async Task<IActionResult> Borrow()
@@ -51,7 +61,8 @@ public class ReceptionController : Controller
     // POST: Reception/Borrow
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Borrow(BorrowItemViewModel model)
+    public async Task<IActionResult> Borrow(
+        BorrowItemViewModel model)
     {
         ViewBag.Borrowers = new SelectList(
             await _context.Borrowers
@@ -67,8 +78,8 @@ public class ReceptionController : Controller
         }
 
         var item = await _context.Items
-            .FirstOrDefaultAsync(i =>
-                i.LibraryCode == model.LibraryCode);
+            .FirstOrDefaultAsync(
+                i => i.LibraryCode == model.LibraryCode);
 
         if (item == null)
         {
@@ -88,11 +99,14 @@ public class ReceptionController : Controller
             return View(model);
         }
 
-        // Prevent borrowing an item held for a reservation.
-        var reservedForPickup = await _context.Reservations
-            .AnyAsync(r =>
-                r.ItemId == item.Id &&
-                r.Status == ReservationStatus.ReadyForPickup);
+        // Prevent normal checkout when the item
+        // is currently being held for a reservation.
+        var reservedForPickup =
+            await _context.Reservations
+                .AnyAsync(r =>
+                    r.ItemId == item.Id &&
+                    r.Status ==
+                        ReservationStatus.ReadyForPickup);
 
         if (reservedForPickup)
         {
@@ -104,8 +118,8 @@ public class ReceptionController : Controller
         }
 
         var borrower = await _context.Borrowers
-            .FirstOrDefaultAsync(b =>
-                b.Id == model.BorrowerId);
+            .FirstOrDefaultAsync(
+                b => b.Id == model.BorrowerId);
 
         if (borrower == null)
         {
@@ -139,6 +153,7 @@ public class ReceptionController : Controller
         item.Status = ItemStatus.Borrowed;
 
         _context.Loans.Add(loan);
+
         await _context.SaveChangesAsync();
 
         await _auditService.LogAsync(
@@ -148,8 +163,8 @@ public class ReceptionController : Controller
             $"{item.Name} ({item.LibraryCode}) borrowed by {borrower.FullName}",
             User.Identity?.Name);
 
-        // Shereena: Simulated borrowing notification.
-        // Notification failure must not undo a completed loan.
+        // Borrow notification.
+        // Notification failure must not undo the loan.
         try
         {
             await _notificationService.SendAsync(
@@ -174,6 +189,10 @@ public class ReceptionController : Controller
         return RedirectToAction(nameof(Borrow));
     }
 
+    // =========================================================
+    // RETURN
+    // =========================================================
+
     // GET: Reception/Return
     public IActionResult Return()
     {
@@ -183,7 +202,8 @@ public class ReceptionController : Controller
     // POST: Reception/Return
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Return(ReturnItemViewModel model)
+    public async Task<IActionResult> Return(
+        ReturnItemViewModel model)
     {
         if (!ModelState.IsValid)
         {
@@ -191,8 +211,8 @@ public class ReceptionController : Controller
         }
 
         var item = await _context.Items
-            .FirstOrDefaultAsync(i =>
-                i.LibraryCode == model.LibraryCode);
+            .FirstOrDefaultAsync(
+                i => i.LibraryCode == model.LibraryCode);
 
         if (item == null)
         {
@@ -206,9 +226,10 @@ public class ReceptionController : Controller
         var loan = await _context.Loans
             .Include(l => l.Borrower)
             .Include(l => l.Item)
-            .FirstOrDefaultAsync(l =>
-                l.ItemId == item.Id &&
-                l.ReturnDate == null);
+            .FirstOrDefaultAsync(
+                l =>
+                    l.ItemId == item.Id &&
+                    l.ReturnDate == null);
 
         if (loan == null)
         {
@@ -222,21 +243,34 @@ public class ReceptionController : Controller
         loan.ReturnDate = DateTime.Now;
 
         loan.IsOverdue =
-            loan.ReturnDate.Value.Date > loan.DueDate.Date;
+            loan.ReturnDate.Value.Date >
+            loan.DueDate.Date;
 
         loan.FineAmount =
-            await _fineCalculator.CalculateFineAsync(loan);
+            await _fineCalculator
+                .CalculateFineAsync(loan);
 
-        // Preserve Kinley's existing return condition logic.
+        // No outstanding payment exists when
+        // the calculated fine is zero.
+        loan.FinePaid =
+            loan.FineAmount <= 0;
+
+        // Reception staff inspect the physical item.
         item.Status = model.Condition switch
         {
-            ItemConditionResult.Good => ItemStatus.Available,
-            ItemConditionResult.Damaged => ItemStatus.Damaged,
-            ItemConditionResult.Destroyed => ItemStatus.Destroy,
-            _ => ItemStatus.Available
+            ItemConditionResult.Good =>
+                ItemStatus.Available,
+
+            ItemConditionResult.Damaged =>
+                ItemStatus.Damaged,
+
+            ItemConditionResult.Destroyed =>
+                ItemStatus.Destroy,
+
+            _ =>
+                ItemStatus.Available
         };
 
-        // Save the return inspection.
         var inspection = new ReturnInspection
         {
             LoanId = loan.Id,
@@ -247,7 +281,8 @@ public class ReceptionController : Controller
             InspectionDate = DateTime.Now
         };
 
-        _context.ReturnInspections.Add(inspection);
+        _context.ReturnInspections.Add(
+            inspection);
 
         await _context.SaveChangesAsync();
 
@@ -258,21 +293,23 @@ public class ReceptionController : Controller
 
         // Recheck borrower eligibility after the return.
         await _borrowerEligibilityService
-            .CheckAndUpdateSuspensionAsync(loan.BorrowerId);
+            .CheckAndUpdateSuspensionAsync(
+                loan.BorrowerId);
 
-        // Preserve existing audit logging.
         await _auditService.LogAsync(
             "Return",
             "Loan",
             loan.Id,
-            $"{item.Name} ({item.LibraryCode}) returned by {loan.Borrower?.FullName}. " +
+            $"{item.Name} ({item.LibraryCode}) returned by " +
+            $"{loan.Borrower?.FullName}. " +
             $"Condition: {model.Condition}. " +
             $"Fine: ${loan.FineAmount:F2}. " +
             $"Repair Cost: ${model.RepairCost:F2}. " +
             $"Replacement Cost: ${model.ReplacementCost:F2}.",
             User.Identity?.Name);
 
-        // Shereena: Simulated fine notification.
+        // Fine notification.
+        // Notification failure must not undo the return.
         if (loan.FineAmount > 0 &&
             loan.Borrower != null)
         {
@@ -295,13 +332,48 @@ public class ReceptionController : Controller
             }
         }
 
-        TempData["SuccessMessage"] =
-            $"{item.Name} returned successfully. " +
-            $"Condition: {model.Condition}. " +
-            $"Fine: ${loan.FineAmount:F2}.";
+        // Show a result screen immediately so Reception
+        // can handle any fine without navigating elsewhere.
+        var resultModel =
+            new ReceptionReturnResultViewModel
+            {
+                LoanId =
+                    loan.Id,
 
-        return RedirectToAction(nameof(Return));
+                BorrowerName =
+                    loan.Borrower?.FullName
+                    ?? "Unknown",
+
+                ItemName =
+                    item.Name,
+
+                LibraryCode =
+                    item.LibraryCode,
+
+                Condition =
+                    model.Condition,
+
+                ReturnDate =
+                    loan.ReturnDate.Value,
+
+                FineAmount =
+                    loan.FineAmount,
+
+                RepairCost =
+                    model.RepairCost,
+
+                ReplacementCost =
+                    model.ReplacementCost
+            };
+
+        return View(
+            "ReturnResult",
+            resultModel);
     }
+
+    // =========================================================
+    // OUTSTANDING FINES
+    // =========================================================
 
     // GET: Reception/Fines
     public async Task<IActionResult> Fines()
@@ -309,43 +381,59 @@ public class ReceptionController : Controller
         var fines = await _context.Loans
             .Include(l => l.Borrower)
             .Include(l => l.Item)
-            .Where(l =>
-                l.FineAmount > 0 && !l.FinePaid)
-            .OrderByDescending(l => l.ReturnDate)
-            .Select(l => new FinePaymentViewModel
-            {
-                LoanId = l.Id,
+            .Where(
+                l =>
+                    l.FineAmount > 0 &&
+                    !l.FinePaid)
+            .OrderByDescending(
+                l => l.ReturnDate)
+            .Select(
+                l => new FinePaymentViewModel
+                {
+                    LoanId =
+                        l.Id,
 
-                BorrowerName = l.Borrower != null
-                    ? l.Borrower.FullName
-                    : "Unknown",
+                    BorrowerName =
+                        l.Borrower != null
+                            ? l.Borrower.FullName
+                            : "Unknown",
 
-                ItemName = l.Item != null
-                    ? l.Item.Name
-                    : "Unknown",
+                    ItemName =
+                        l.Item != null
+                            ? l.Item.Name
+                            : "Unknown",
 
-                LibraryCode = l.Item != null
-                    ? l.Item.LibraryCode
-                    : "",
+                    LibraryCode =
+                        l.Item != null
+                            ? l.Item.LibraryCode
+                            : string.Empty,
 
-                FineAmount = l.FineAmount,
-                ReturnDate = l.ReturnDate
-            })
+                    FineAmount =
+                        l.FineAmount,
+
+                    ReturnDate =
+                        l.ReturnDate
+                })
             .ToListAsync();
 
         return View(fines);
     }
 
-    // POST: Reception/PayFine
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> PayFine(int loanId)
+    // =========================================================
+    // SQUARE PAYMENT
+    // =========================================================
+
+    // GET: Reception/PayFineSquare/15
+    [HttpGet]
+    public async Task<IActionResult> PayFineSquare(
+        int id)
     {
         var loan = await _context.Loans
+            .AsNoTracking()
             .Include(l => l.Borrower)
             .Include(l => l.Item)
-            .FirstOrDefaultAsync(l =>
-                l.Id == loanId);
+            .FirstOrDefaultAsync(
+                l => l.Id == id);
 
         if (loan == null)
         {
@@ -357,7 +445,8 @@ public class ReceptionController : Controller
             TempData["ErrorMessage"] =
                 "This loan does not have an outstanding fine.";
 
-            return RedirectToAction(nameof(Fines));
+            return RedirectToAction(
+                nameof(Fines));
         }
 
         if (loan.FinePaid)
@@ -365,7 +454,133 @@ public class ReceptionController : Controller
             TempData["ErrorMessage"] =
                 "This fine has already been paid.";
 
-            return RedirectToAction(nameof(Fines));
+            return RedirectToAction(
+                nameof(Fines));
+        }
+
+        var model =
+            BuildReceptionFinePaymentViewModel(
+                loan);
+
+        return View(model);
+    }
+
+    // POST: Reception/ProcessSquareFinePayment
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult>
+        ProcessSquareFinePayment(
+            int loanId,
+            string sourceId)
+    {
+        var result =
+            await _paymentService.PayFineAsync(
+                loanId,
+                sourceId);
+
+        if (!result.Success)
+        {
+            return BadRequest(
+                new
+                {
+                    success = false,
+
+                    message =
+                        result.ErrorMessage
+                        ?? "Payment failed."
+                });
+        }
+
+        return Ok(
+            new
+            {
+                success = true,
+
+                paymentId =
+                    result.PaymentId
+            });
+    }
+
+    // GET: Reception/SquarePaymentSuccess
+    [HttpGet]
+    public async Task<IActionResult>
+        SquarePaymentSuccess(
+            int loanId,
+            string? paymentId)
+    {
+        var loan = await _context.Loans
+            .AsNoTracking()
+            .Include(l => l.Borrower)
+            .Include(l => l.Item)
+            .FirstOrDefaultAsync(
+                l => l.Id == loanId);
+
+        if (loan == null)
+        {
+            return NotFound();
+        }
+
+        if (!loan.FinePaid)
+        {
+            TempData["ErrorMessage"] =
+                "Payment has not been confirmed.";
+
+            return RedirectToAction(
+                nameof(Fines));
+        }
+
+        var model =
+            BuildReceptionFinePaymentViewModel(
+                loan);
+
+        model.PaymentCompleted =
+            true;
+
+        model.PaymentId =
+            paymentId;
+
+        return View(
+            "PayFineSquare",
+            model);
+    }
+
+    // =========================================================
+    // CASH / MANUAL PAYMENT
+    // =========================================================
+
+    // POST: Reception/PayFine
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> PayFine(
+        int loanId)
+    {
+        var loan = await _context.Loans
+            .Include(l => l.Borrower)
+            .Include(l => l.Item)
+            .FirstOrDefaultAsync(
+                l => l.Id == loanId);
+
+        if (loan == null)
+        {
+            return NotFound();
+        }
+
+        if (loan.FineAmount <= 0)
+        {
+            TempData["ErrorMessage"] =
+                "This loan does not have an outstanding fine.";
+
+            return RedirectToAction(
+                nameof(Fines));
+        }
+
+        if (loan.FinePaid)
+        {
+            TempData["ErrorMessage"] =
+                "This fine has already been paid.";
+
+            return RedirectToAction(
+                nameof(Fines));
         }
 
         loan.FinePaid = true;
@@ -373,19 +588,58 @@ public class ReceptionController : Controller
         await _context.SaveChangesAsync();
 
         await _borrowerEligibilityService
-            .CheckAndUpdateSuspensionAsync(loan.BorrowerId);
+            .CheckAndUpdateSuspensionAsync(
+                loan.BorrowerId);
 
         await _auditService.LogAsync(
-            "Fine Paid",
+            "Fine Paid - Manual",
             "Loan",
             loan.Id,
-            $"Fine of ${loan.FineAmount:F2} paid by {loan.Borrower?.FullName} " +
-            $"for {loan.Item?.Name} ({loan.Item?.LibraryCode})",
+            $"Fine of ${loan.FineAmount:F2} manually recorded as paid " +
+            $"by Reception for {loan.Borrower?.FullName}. " +
+            $"Item: {loan.Item?.Name} ({loan.Item?.LibraryCode}).",
             User.Identity?.Name);
 
         TempData["SuccessMessage"] =
-            $"Fine of ${loan.FineAmount:F2} has been marked as paid.";
+            $"Fine of ${loan.FineAmount:F2} has been recorded as paid.";
 
-        return RedirectToAction(nameof(Fines));
+        return RedirectToAction(
+            nameof(Fines));
+    }
+
+    // =========================================================
+    // HELPERS
+    // =========================================================
+
+    private ReceptionFinePaymentViewModel
+        BuildReceptionFinePaymentViewModel(
+            Loan loan)
+    {
+        return new ReceptionFinePaymentViewModel
+        {
+            LoanId =
+                loan.Id,
+
+            BorrowerName =
+                loan.Borrower?.FullName
+                ?? "Unknown",
+
+            ItemName =
+                loan.Item?.Name
+                ?? "Unknown",
+
+            LibraryCode =
+                loan.Item?.LibraryCode
+                ?? string.Empty,
+
+            FineAmount =
+                loan.FineAmount,
+
+            SquareApplicationId =
+                _squareSettings.ApplicationId,
+
+            SquareLocationId =
+                _squareSettings.LocationId
+        };
     }
 }

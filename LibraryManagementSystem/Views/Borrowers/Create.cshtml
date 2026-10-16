@@ -1,60 +1,132 @@
 @model LibraryManagementSystem.Models.Borrower
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Register Borrower";
 }
 
-<h1>Create</h1>
+<div class="container py-4">
 
-<h4>Borrower</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
 
-            <div class="form-group">
-                <label asp-for="FullName" class="control-label"></label>
-                <input asp-for="FullName" class="form-control" />
-                <span asp-validation-for="FullName" class="text-danger"></span>
+            <div class="mb-4">
+                <h1 class="fw-bold display-5 mb-2">
+                    Register Borrower
+                </h1>
+
+                <p class="text-muted fs-5">
+                    Create a new library borrower account.
+                </p>
             </div>
 
-            <div class="form-group">
-                <label asp-for="Email" class="control-label"></label>
-                <input asp-for="Email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4 p-md-5">
+
+                    <div class="mb-4">
+                        <h3 class="fw-bold mb-2">
+                            Borrower Details
+                        </h3>
+
+                        <p class="text-muted mb-0">
+                            Enter the borrower's contact information below.
+                        </p>
+                    </div>
+
+                    <form asp-action="Create" method="post">
+
+                        <div asp-validation-summary="ModelOnly"
+                             class="alert alert-danger"
+                             role="alert">
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="FullName"
+                                   class="form-label fw-semibold">
+                                Full Name
+                            </label>
+
+                            <input asp-for="FullName"
+                                   class="form-control form-control-lg"
+                                   placeholder="Example: Jane Smith"
+                                   autocomplete="name" />
+
+                            <span asp-validation-for="FullName"
+                                  class="text-danger">
+                            </span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Email"
+                                   class="form-label fw-semibold">
+                                Email Address
+                            </label>
+
+                            <input asp-for="Email"
+                                   type="email"
+                                   class="form-control form-control-lg"
+                                   placeholder="Example: jane@example.com"
+                                   autocomplete="email" />
+
+                            <span asp-validation-for="Email"
+                                  class="text-danger">
+                            </span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Phone"
+                                   class="form-label fw-semibold">
+                                Phone Number
+                            </label>
+
+                            <input asp-for="Phone"
+                                   type="tel"
+                                   class="form-control form-control-lg"
+                                   placeholder="Example: 0412 345 678"
+                                   autocomplete="tel" />
+
+                            <span asp-validation-for="Phone"
+                                  class="text-danger">
+                            </span>
+                        </div>
+
+                        <div class="alert alert-info rounded-3 mb-4">
+                            <div class="fw-bold mb-1">
+                                Library membership
+                            </div>
+
+                            <div>
+                                A unique library card number will be
+                                generated automatically after registration.
+                                New borrowers begin with an Active account.
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex">
+
+                            <button type="submit"
+                                    class="btn btn-primary btn-lg px-4">
+                                Register Borrower
+                            </button>
+
+                            <a asp-action="Index"
+                               class="btn btn-outline-secondary btn-lg px-4">
+                                Cancel
+                            </a>
+
+                        </div>
+
+                    </form>
+
+                </div>
             </div>
 
-            <div class="form-group">
-                <label asp-for="Phone" class="control-label"></label>
-                <input asp-for="Phone" class="form-control" />
-                <span asp-validation-for="Phone" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="IsSuspended" class="control-label"></label>
-                <input asp-for="IsSuspended" class="form-check-input" />
-                <span asp-validation-for="IsSuspended" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="SuspensionReason" class="control-label"></label>
-                <input asp-for="SuspensionReason" class="form-control" />
-                <span asp-validation-for="SuspensionReason" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="Loans" class="control-label"></label>
-                <input asp-for="Loans" class="form-control" />
-                <span asp-validation-for="Loans" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
+
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

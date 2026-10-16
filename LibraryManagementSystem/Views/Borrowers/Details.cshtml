@@ -2,91 +2,352 @@
 
 @{
     ViewData["Title"] = "Borrower Details";
+
+    var activeLoans =
+        ViewBag.ActiveLoans as List<LibraryManagementSystem.Models.Loan>
+        ?? new List<LibraryManagementSystem.Models.Loan>();
+
+    decimal outstandingFine =
+        ViewBag.OutstandingFine != null
+            ? (decimal)ViewBag.OutstandingFine
+            : 0m;
 }
 
-<h1>Borrower Details</h1>
+<div class="container py-4">
 
-<div>
-    <h4>@Model.FullName</h4>
-    <hr />
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success rounded-4 shadow-sm">
+            @TempData["SuccessMessage"]
+        </div>
+    }
 
-    <dl class="row">
+    @if (TempData["NotificationWarning"] != null)
+    {
+        <div class="alert alert-warning rounded-4 shadow-sm">
+            @TempData["NotificationWarning"]
+        </div>
+    }
 
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.FullName)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.FullName)
-        </dd>
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
 
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Email)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Email)
-        </dd>
+        <div>
+            <h1 class="fw-bold display-5 mb-1">
+                Borrower Profile
+            </h1>
 
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Phone)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Phone)
-        </dd>
+            <p class="text-muted fs-5 mb-0">
+                Membership details, borrowing status and digital library card.
+            </p>
+        </div>
 
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.LibraryCardNumber)
-        </dt>
-        <dd class="col-sm-10">
-            @if (string.IsNullOrWhiteSpace(Model.LibraryCardNumber))
+        <a asp-action="Index"
+           class="btn btn-outline-secondary btn-lg">
+            Back to Borrowers
+        </a>
+
+    </div>
+
+    <div class="row g-4">
+
+        <!-- DIGITAL LIBRARY CARD -->
+        <div class="col-lg-7">
+
+            <div class="card border-0 shadow rounded-4 overflow-hidden">
+
+                <div class="bg-primary text-white p-4">
+
+                    <div class="d-flex justify-content-between align-items-start">
+
+                        <div>
+                            <div class="small opacity-75 mb-1">
+                                LIBRARY MEMBER
+                            </div>
+
+                            <h2 class="fw-bold mb-1">
+                                @Model.FullName
+                            </h2>
+
+                            <div class="fs-5">
+                                @Model.LibraryCardNumber
+                            </div>
+                        </div>
+
+                        @if (Model.IsSuspended)
+                        {
+                            <span class="badge bg-danger fs-6 px-3 py-2">
+                                Suspended
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success fs-6 px-3 py-2">
+                                Active
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+
+                    <div class="row g-4 align-items-center">
+
+                        <div class="col-md-7">
+
+                            <div class="mb-3">
+                                <div class="text-muted small">
+                                    EMAIL
+                                </div>
+
+                                <div class="fw-semibold">
+                                    @Model.Email
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="text-muted small">
+                                    PHONE
+                                </div>
+
+                                <div class="fw-semibold">
+                                    @Model.Phone
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="text-muted small">
+                                    LIBRARY CARD NUMBER
+                                </div>
+
+                                <div class="fw-bold fs-5">
+                                    @Model.LibraryCardNumber
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="col-md-5 text-center">
+
+                            <div id="borrowerQrCode"
+                                 class="d-inline-block p-3 bg-white border rounded-3">
+                            </div>
+
+                            <div class="small text-muted mt-2">
+                                Scan at self-service kiosk
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ACCOUNT SUMMARY -->
+        <div class="col-lg-5">
+
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+
+                    <h4 class="fw-bold mb-4">
+                        Account Summary
+                    </h4>
+
+                    <div class="d-flex justify-content-between py-3 border-bottom">
+                        <span class="text-muted">
+                            Active Loans
+                        </span>
+
+                        <strong class="fs-5">
+                            @activeLoans.Count
+                        </strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between py-3 border-bottom">
+                        <span class="text-muted">
+                            Outstanding Fine
+                        </span>
+
+                        <strong class="fs-5 @(outstandingFine > 0 ? "text-danger" : "text-success")">
+                            $@outstandingFine.ToString("F2")
+                        </strong>
+                    </div>
+
+                    <div class="d-flex justify-content-between py-3">
+                        <span class="text-muted">
+                            Account Status
+                        </span>
+
+                        @if (Model.IsSuspended)
+                        {
+                            <strong class="text-danger">
+                                Suspended
+                            </strong>
+                        }
+                        else
+                        {
+                            <strong class="text-success">
+                                Active
+                            </strong>
+                        }
+                    </div>
+
+                    @if (Model.IsSuspended &&
+                         !string.IsNullOrWhiteSpace(Model.SuspensionReason))
+                    {
+                        <div class="alert alert-danger mt-3 mb-0">
+                            <strong>Restriction reason</strong>
+                            <div>
+                                @Model.SuspensionReason
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ACTIVE LOANS -->
+    <div class="card border-0 shadow-sm rounded-4 mt-4">
+        <div class="card-body p-4">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+
+                <h3 class="fw-bold mb-0">
+                    Current Loans
+                </h3>
+
+                <span class="badge bg-secondary fs-6">
+                    @activeLoans.Count
+                </span>
+
+            </div>
+
+            @if (activeLoans.Count == 0)
             {
-                <span class="text-muted">Not assigned</span>
+                <div class="text-center py-5 text-muted">
+                    <h5>No items currently borrowed</h5>
+                    <p class="mb-0">
+                        This borrower has no active loans.
+                    </p>
+                </div>
             }
             else
             {
-                <strong>@Model.LibraryCardNumber</strong>
-            }
-        </dd>
+                <div class="table-responsive">
 
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.IsSuspended)
-        </dt>
-        <dd class="col-sm-10">
-            @if (Model.IsSuspended)
-            {
-                <span class="badge bg-danger">Suspended</span>
-            }
-            else
-            {
-                <span class="badge bg-success">Active</span>
-            }
-        </dd>
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Library Code</th>
+                                <th>Borrowed</th>
+                                <th>Due</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
 
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.SuspensionReason)
-        </dt>
-        <dd class="col-sm-10">
-            @if (string.IsNullOrWhiteSpace(Model.SuspensionReason))
-            {
-                <span class="text-muted">No restrictions</span>
-            }
-            else
-            {
-                @Model.SuspensionReason
-            }
-        </dd>
+                        <tbody>
 
-    </dl>
+                            @foreach (var loan in activeLoans)
+                            {
+                                var overdue =
+                                    loan.DueDate.Date < DateTime.Today;
+
+                                <tr>
+                                    <td class="fw-semibold">
+                                        @(loan.Item?.Name ?? "Unknown")
+                                    </td>
+
+                                    <td>
+                                        @(loan.Item?.LibraryCode ?? "-")
+                                    </td>
+
+                                    <td>
+                                        @loan.BorrowDate.ToString("dd MMM yyyy")
+                                    </td>
+
+                                    <td>
+                                        @loan.DueDate.ToString("dd MMM yyyy")
+                                    </td>
+
+                                    <td>
+                                        @if (overdue)
+                                        {
+                                            <span class="badge bg-danger">
+                                                Overdue
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">
+                                                On Loan
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+
+                        </tbody>
+                    </table>
+
+                </div>
+            }
+
+        </div>
+    </div>
+
+    <div class="mt-4 d-flex gap-2 flex-wrap">
+
+        <a asp-action="Edit"
+           asp-route-id="@Model.Id"
+           class="btn btn-primary btn-lg">
+            Edit Borrower
+        </a>
+
+        <a asp-controller="Reception"
+           asp-action="Borrow"
+           class="btn btn-outline-primary btn-lg">
+            Borrow Item
+        </a>
+
+    </div>
+
 </div>
 
-<div class="mt-3">
-    <a asp-action="Edit"
-       asp-route-id="@Model.Id"
-       class="btn btn-primary">
-        Edit
-    </a>
+@section Scripts {
 
-    <a asp-action="Index"
-       class="btn btn-outline-secondary">
-        Back to List
-    </a>
-</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const qrContainer =
+                document.getElementById('borrowerQrCode');
+
+            const libraryCardNumber =
+                '@Model.LibraryCardNumber';
+
+            if (qrContainer &&
+                libraryCardNumber) {
+
+                new QRCode(
+                    qrContainer,
+                    {
+                        text: libraryCardNumber,
+                        width: 150,
+                        height: 150
+                    }
+                );
+            }
+        });
+    </script>
+}
