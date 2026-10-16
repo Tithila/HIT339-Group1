@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace LibraryManagementSystem.Pages.Admin;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Manager")]
 public class ImportModel : PageModel
 {
     private readonly IImportService _importService;
@@ -38,8 +38,8 @@ public class ImportModel : PageModel
         try
         {
             Preview = await _importService.PreviewImportAsync(UploadFile);
-            // store preview in TempData as JSON for confirmation
             TempData["ImportPreview"] = JsonSerializer.Serialize(Preview);
+            return RedirectToPage("/Admin/ImportPreview");
         }
         catch (Exception ex)
         {

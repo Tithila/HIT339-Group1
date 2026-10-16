@@ -129,9 +129,11 @@
 
                                 @if (item.Status == LibraryManagementSystem.Models.ItemStatus.Available)
                                 {
-                                    <span class="badge bg-success">
+                                    <button type="button"
+                                            class="badge bg-success border-0 js-request-badge"
+                                            aria-pressed="false">
                                         Available
-                                    </span>
+                                    </button>
                                 }
                                 else if (item.Status == LibraryManagementSystem.Models.ItemStatus.Borrowed)
                                 {
@@ -176,6 +178,7 @@
                                 <div class="fw-semibold">
                                     @item.GetType().Name
                                 </div>
+
                             </div>
 
                         </div>
@@ -183,9 +186,24 @@
                     </div>
 
                 </div>
+
             }
 
         </div>
     }
 
 </div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.js-request-badge').forEach(function (badge) {
+            badge.addEventListener('click', function () {
+                badge.classList.remove('bg-success');
+                badge.classList.add('bg-warning', 'text-dark');
+                badge.textContent = 'Requested';
+                badge.setAttribute('aria-pressed', 'true');
+                badge.disabled = true;
+            });
+        });
+    </script>
+}
