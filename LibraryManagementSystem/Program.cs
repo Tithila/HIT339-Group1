@@ -16,7 +16,6 @@ var connectionString = builder.Configuration
     ?? throw new InvalidOperationException(
         "Connection string 'DefaultConnection' not found.");
 
-// SQL Server configuration with retry support.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         connectionString,
@@ -52,8 +51,6 @@ builder.Services.AddControllersWithViews();
 // SQUARE CONFIGURATION
 // =========================================================
 
-// Reads Square credentials from User Secrets/configuration.
-// AccessToken remains server-side only.
 builder.Services.Configure<SquareSettings>(
     builder.Configuration.GetSection("Square"));
 
@@ -62,7 +59,7 @@ builder.Services.Configure<SquareSettings>(
 // =========================================================
 
 // Used by the self-service kiosk to remember
-// the verified borrower and payment session.
+// the verified borrower between screens.
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(10);
@@ -87,7 +84,7 @@ builder.Services.AddScoped<
     AuditService>();
 
 // =========================================================
-// SQUARE PAYMENT SERVICE
+// SQUARE PAYMENT
 // =========================================================
 
 builder.Services.AddScoped<
@@ -95,7 +92,7 @@ builder.Services.AddScoped<
     SquarePaymentService>();
 
 // =========================================================
-// MULTI-BRANCH INVENTORY
+// MULTI-BRANCH INVENTORY / TRANSFERS
 // =========================================================
 
 builder.Services.AddScoped<
@@ -103,7 +100,7 @@ builder.Services.AddScoped<
     TransferService>();
 
 // =========================================================
-// AUTOMATED NOTIFICATIONS
+// NOTIFICATIONS
 // =========================================================
 
 builder.Services.AddScoped<
@@ -119,6 +116,22 @@ builder.Services.AddScoped<
     ReservationService>();
 
 // =========================================================
+// IMPORT / REPORTING
+// =========================================================
+
+builder.Services.AddScoped<
+    IImportService,
+    ImportService>();
+
+builder.Services.AddScoped<
+    IReportingService,
+    ReportingService>();
+
+// Scheduled monthly PDF / weekly reporting service.
+builder.Services.AddHostedService<
+    ScheduledReportService>();
+
+// =========================================================
 // API / SWAGGER
 // =========================================================
 
@@ -126,7 +139,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // =========================================================
-// BACKGROUND PROCESSING
+// BACKGROUND OVERDUE PROCESSING
 // =========================================================
 
 builder.Services.AddHostedService<
@@ -159,14 +172,14 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        // Apply migrations from all merged features.
+        // Apply any migrations introduced by merged features.
         await context.Database.MigrateAsync();
 
-        // Create application roles and test users.
+        // Ensure roles and development users still exist.
         await RoleSeeder.SeedRolesAsync(services);
         await IdentitySeeder.SeedUsersAsync(services);
 
-        // Seed library data.
+        // Seed core library data.
         await LibraryDataSeeder.SeedAsync(context);
     }
     catch (Exception ex)
@@ -180,7 +193,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // =========================================================
-// HTTP PIPELINE
+// HTTP REQUEST PIPELINE
 // =========================================================
 
 if (app.Environment.IsDevelopment())
@@ -200,11 +213,10 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
-// Kiosk session must be enabled before
-// controller actions access HttpContext.Session.
+// Kiosk session must be available before controller actions.
 app.UseSession();
 
-// Identity middleware.
+// Identity authentication / authorization.
 app.UseAuthentication();
 app.UseAuthorization();
 
