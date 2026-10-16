@@ -37,6 +37,7 @@ builder.Services
 
 // MVC
 builder.Services.AddControllersWithViews();
+builder.Services.AddMemoryCache();
 
 // Existing library services
 builder.Services.AddScoped<IFineCalculator, FineCalculator>();
@@ -88,9 +89,24 @@ using (var scope = app.Services.CreateScope())
     var roleManager = scope.ServiceProvider
         .GetRequiredService<RoleManager<IdentityRole>>();
 
+    const string adminRole = "Admin";
     const string managerRole = "Manager";
     const string adminEmail = "admin@library.local";
     const string adminPassword = "P@ssw0rd!";
+
+    if (!await roleManager.RoleExistsAsync(adminRole))
+    {
+        var roleResult = await roleManager.CreateAsync(
+            new IdentityRole(adminRole));
+
+        if (!roleResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                string.Join(
+                    "; ",
+                    roleResult.Errors.Select(error => error.Description)));
+        }
+    }
 
     if (!await roleManager.RoleExistsAsync(managerRole))
     {
@@ -127,6 +143,21 @@ using (var scope = app.Services.CreateScope())
                 string.Join(
                     "; ",
                     userResult.Errors.Select(error => error.Description)));
+        }
+    }
+
+    if (!await userManager.IsInRoleAsync(adminUser, adminRole))
+    {
+        var roleResult = await userManager.AddToRoleAsync(
+            adminUser,
+            adminRole);
+
+        if (!roleResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                string.Join(
+                    "; ",
+                    roleResult.Errors.Select(error => error.Description)));
         }
     }
 
