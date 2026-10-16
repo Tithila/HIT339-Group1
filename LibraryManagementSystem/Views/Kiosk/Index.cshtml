@@ -55,6 +55,7 @@
                             </label>
 
                             <input asp-for="LibraryCode"
+                                   id="libraryCodeInput"
                                    class="form-control form-control-lg"
                                    placeholder="Example: BK001"
                                    autofocus />
@@ -64,10 +65,37 @@
                             </span>
                         </div>
 
-                        <button type="submit"
-                                class="btn btn-primary btn-lg w-100 py-3">
-                            Check Item
-                        </button>
+                        <div class="d-grid gap-3">
+                            <button type="submit"
+                                    class="btn btn-primary btn-lg py-3">
+                                Check Item
+                            </button>
+
+                            <button type="button"
+                                    id="startScannerButton"
+                                    class="btn btn-outline-primary btn-lg py-3">
+                                <span aria-hidden="true">▣</span>
+                                Scan with camera
+                            </button>
+                        </div>
+
+                        <div id="scannerPanel"
+                             class="mt-4 d-none"
+                             aria-live="polite">
+                            <div id="barcodeReader"
+                                 class="rounded-3 overflow-hidden border"></div>
+
+                            <p id="scannerMessage"
+                               class="text-muted text-center mt-2 mb-3">
+                                Point the camera at an item's barcode.
+                            </p>
+
+                            <button type="button"
+                                    id="stopScannerButton"
+                                    class="btn btn-outline-secondary btn-lg w-100">
+                                Stop camera
+                            </button>
+                        </div>
 
                     </form>
 
@@ -166,7 +194,75 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
     <script>
+        let kioskScanner = null;
+
+        const scannerPanel = document.getElementById('scannerPanel');
+        const scannerMessage = document.getElementById('scannerMessage');
+        const startScannerButton = document.getElementById('startScannerButton');
+        const stopScannerButton = document.getElementById('stopScannerButton');
+        const libraryCodeInput = document.getElementById('libraryCodeInput');
+
+        function stopBarcodeScanner() {
+            if (!kioskScanner) {
+                scannerPanel.classList.add('d-none');
+                return;
+            }
+
+            kioskScanner.stop()
+                .catch(() => { })
+                .finally(() => {
+                    kioskScanner.clear();
+                    kioskScanner = null;
+                    scannerPanel.classList.add('d-none');
+                    startScannerButton.disabled = false;
+                });
+        }
+
+        startScannerButton.addEventListener('click', async function () {
+            if (typeof Html5Qrcode === 'undefined') {
+                scannerPanel.classList.remove('d-none');
+                scannerMessage.textContent =
+                    'The camera scanner could not be loaded. Enter the library code manually.';
+                return;
+            }
+
+            scannerPanel.classList.remove('d-none');
+            startScannerButton.disabled = true;
+            scannerMessage.textContent =
+                'Allow camera access, then point the camera at the barcode.';
+
+            kioskScanner = new Html5Qrcode('barcodeReader');
+
+            try {
+                await kioskScanner.start(
+                    { facingMode: 'environment' },
+                    {
+                        fps: 10,
+                        qrbox: { width: 250, height: 150 },
+                        aspectRatio: 1.777778
+                    },
+                    (decodedText) => {
+                        libraryCodeInput.value = decodedText.trim();
+                        scannerMessage.textContent =
+                            `Scanned: ${libraryCodeInput.value}`;
+                        stopBarcodeScanner();
+                        libraryCodeInput.form.requestSubmit();
+                    },
+                    () => { }
+                );
+            } catch (error) {
+                scannerMessage.textContent =
+                    'Camera access was unavailable. Check browser permissions or enter the code manually.';
+                startScannerButton.disabled = false;
+                kioskScanner = null;
+            }
+        });
+
+        stopScannerButton.addEventListener('click', stopBarcodeScanner);
+
         function setKioskMode(mode) {
             const page = document.getElementById('kioskPage');
 

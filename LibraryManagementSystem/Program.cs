@@ -76,12 +76,74 @@ builder.Services.AddHostedService<ScheduledReportService>();
 
 var app = builder.Build();
 
-// Apply database migrations and seed data
+// Apply database migrations, seed data, and create the development admin account
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate(); // applies pending migrations
     await LibraryDataSeeder.SeedAsync(db); // then run your seeder
+
+    var userManager = scope.ServiceProvider
+        .GetRequiredService<UserManager<IdentityUser>>();
+    var roleManager = scope.ServiceProvider
+        .GetRequiredService<RoleManager<IdentityRole>>();
+
+    const string managerRole = "Manager";
+    const string adminEmail = "admin@library.local";
+    const string adminPassword = "P@ssw0rd!";
+
+    if (!await roleManager.RoleExistsAsync(managerRole))
+    {
+        var roleResult = await roleManager.CreateAsync(
+            new IdentityRole(managerRole));
+
+        if (!roleResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                string.Join(
+                    "; ",
+                    roleResult.Errors.Select(error => error.Description)));
+        }
+    }
+
+    var adminUser = await userManager.FindByEmailAsync(adminEmail);
+
+    if (adminUser == null)
+    {
+        adminUser = new IdentityUser
+        {
+            UserName = adminEmail,
+            Email = adminEmail,
+            EmailConfirmed = true
+        };
+
+        var userResult = await userManager.CreateAsync(
+            adminUser,
+            adminPassword);
+
+        if (!userResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                string.Join(
+                    "; ",
+                    userResult.Errors.Select(error => error.Description)));
+        }
+    }
+
+    if (!await userManager.IsInRoleAsync(adminUser, managerRole))
+    {
+        var roleResult = await userManager.AddToRoleAsync(
+            adminUser,
+            managerRole);
+
+        if (!roleResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                string.Join(
+                    "; ",
+                    roleResult.Errors.Select(error => error.Description)));
+        }
+    }
 }
 
 // Configure the HTTP request pipeline

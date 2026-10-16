@@ -2,18 +2,19 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LibraryManagementSystem.Services
 {
     public class ScheduledReportService : BackgroundService
     {
         private readonly ILogger<ScheduledReportService> _logger;
-        private readonly IReportingService _reporting;
+        private readonly IServiceProvider _services;
 
-        public ScheduledReportService(ILogger<ScheduledReportService> logger, IReportingService reporting)
+        public ScheduledReportService(ILogger<ScheduledReportService> logger, IServiceProvider services)
         {
             _logger = logger;
-            _reporting = reporting;
+            _services = services;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -27,7 +28,9 @@ namespace LibraryManagementSystem.Services
                     var now = DateTime.UtcNow;
                     if (now.Day == 1)
                     {
-                        await _reporting.ExportPdfAsync("MonthlyManagerReport");
+                        using var scope = _services.CreateScope();
+                        var reporting = scope.ServiceProvider.GetRequiredService<IReportingService>();
+                        await reporting.ExportPdfAsync("MonthlyManagerReport");
                         _logger.LogInformation("Monthly report generation triggered.");
                     }
 

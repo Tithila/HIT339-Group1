@@ -3,6 +3,7 @@ using LibraryManagementSystem.Models;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
+using QuestPDF.Helpers;
 
 namespace LibraryManagementSystem.Services
 {
@@ -49,9 +50,15 @@ namespace LibraryManagementSystem.Services
         public async Task<List<BranchLoanStat>> GetLoansByBranchAsync()
         {
             var q = await _db.Loans
-                .Include(l => l.Item)
+                .Include(l => l.Item!)
                 .ThenInclude(i => i.Branch)
-                .GroupBy(l => new { l.Item.BranchId, l.Item.Branch.Code, l.Item.Branch.Name })
+                .Where(l => l.Item != null && l.Item.Branch != null)
+                .GroupBy(l => new
+                {
+                    BranchId = l.Item!.BranchId,
+                    Code = l.Item.Branch!.Code,
+                    Name = l.Item.Branch.Name
+                })
                 .Select(g => new BranchLoanStat
                 {
                     BranchId = g.Key.BranchId ?? 0,
@@ -157,9 +164,9 @@ namespace LibraryManagementSystem.Services
 
                         page.Footer().AlignCenter().Text(x =>
                         {
-                            x.Span("Page ");
+                            x.Span("Page ").FontSize(9);
                             x.CurrentPageNumber();
-                        }).FontSize(9);
+                        });
                     });
                 }).GeneratePdf();
 
@@ -186,7 +193,7 @@ namespace LibraryManagementSystem.Services
                 .ToList();
 
             column.Item().Text("Monthly Loans (last 12 months)").FontSize(13).Bold();
-            column.Item().Spacer(4);
+            column.Item().PaddingTop(4);
 
             column.Item().Table(table =>
             {
@@ -211,9 +218,15 @@ namespace LibraryManagementSystem.Services
         private void RenderBranchLoansReport(ColumnDescriptor column)
         {
             var branchLoans = _db.Loans
-                .Include(l => l.Item)
+                .Include(l => l.Item!)
                 .ThenInclude(i => i.Branch)
-                .GroupBy(l => new { l.Item.BranchId, l.Item.Branch.Code, l.Item.Branch.Name })
+                .Where(l => l.Item != null && l.Item.Branch != null)
+                .GroupBy(l => new
+                {
+                    BranchId = l.Item!.BranchId,
+                    Code = l.Item.Branch!.Code,
+                    Name = l.Item.Branch.Name
+                })
                 .Select(g => new BranchLoanStat
                 {
                     BranchId = g.Key.BranchId ?? 0,
@@ -225,7 +238,7 @@ namespace LibraryManagementSystem.Services
                 .ToList();
 
             column.Item().Text("Loans by Branch").FontSize(13).Bold();
-            column.Item().Spacer(4);
+            column.Item().PaddingTop(4);
 
             column.Item().Table(table =>
             {
@@ -256,7 +269,7 @@ namespace LibraryManagementSystem.Services
             };
 
             column.Item().Text("Inventory Health").FontSize(13).Bold();
-            column.Item().Spacer(4);
+            column.Item().PaddingTop(4);
 
             column.Item().Text($"Total items: {health.Total}");
             column.Item().Text($"Damaged/Destroyed: {health.DamagedOrDestroyed}");
@@ -273,7 +286,7 @@ namespace LibraryManagementSystem.Services
                 .ToList();
 
             column.Item().Text("Top Reservations").FontSize(13).Bold();
-            column.Item().Spacer(4);
+            column.Item().PaddingTop(4);
 
             column.Item().Table(table =>
             {

@@ -17,19 +17,22 @@ public class ReceptionController : Controller
     private readonly IBorrowerEligibilityService _borrowerEligibilityService;
     private readonly IAuditService _auditService;
     private readonly INotificationService _notificationService;
+    private readonly IReservationService _reservationService;
 
     public ReceptionController(
         ApplicationDbContext context,
         IFineCalculator fineCalculator,
         IBorrowerEligibilityService borrowerEligibilityService,
         IAuditService auditService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IReservationService reservationService)
     {
         _context = context;
         _fineCalculator = fineCalculator;
         _borrowerEligibilityService = borrowerEligibilityService;
         _auditService = auditService;
         _notificationService = notificationService;
+        _reservationService = reservationService;
     }
 
     // GET: Reception/Borrow
@@ -247,6 +250,11 @@ public class ReceptionController : Controller
         _context.ReturnInspections.Add(inspection);
 
         await _context.SaveChangesAsync();
+
+        if (item.Status == ItemStatus.Available)
+        {
+            await _reservationService.PromoteNextAsync(item.Id);
+        }
 
         // Recheck borrower eligibility after the return.
         await _borrowerEligibilityService
