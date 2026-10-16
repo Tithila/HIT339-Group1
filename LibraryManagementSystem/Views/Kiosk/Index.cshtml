@@ -84,7 +84,9 @@
                 <div class="card shadow-sm border-0 rounded-4 mb-4">
                     <div class="card-body p-4 p-md-5">
 
-                        <form asp-action="Index" method="post">
+                        <form asp-action="Index"
+                              method="post"
+                              id="itemScanForm">
 
                             <div asp-validation-summary="ModelOnly"
                                  class="text-danger mb-3">
@@ -106,6 +108,28 @@
                                 <span asp-validation-for="LibraryCode"
                                       class="text-danger">
                                 </span>
+
+                                <div class="mt-3 d-grid gap-2">
+
+                                    <button type="button"
+                                            class="btn btn-outline-primary btn-lg"
+                                            onclick="startCameraScanner()">
+                                        Scan with Camera
+                                    </button>
+
+                                    <button type="button"
+                                            id="stopScannerButton"
+                                            class="btn btn-outline-danger d-none"
+                                            onclick="stopCameraScanner()">
+                                        Stop Camera
+                                    </button>
+
+                                </div>
+
+                                <div id="reader"
+                                     class="mt-4"
+                                     style="display:none;">
+                                </div>
 
                             </div>
 
@@ -193,7 +217,8 @@
                         @if (Model.Item.Status ==
                              LibraryManagementSystem.Models.ItemStatus.Available)
                         {
-                            <form asp-action="Checkout" method="post">
+                            <form asp-action="Checkout"
+                                  method="post">
 
                                 <input type="hidden"
                                        name="libraryCode"
@@ -326,11 +351,16 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
     <script>
+
+        let html5QrCode = null;
 
         function setKioskMode(mode) {
 
-            const page = document.getElementById('kioskPage');
+            const page =
+                document.getElementById('kioskPage');
 
             page.classList.remove(
                 'kiosk-large-text',
@@ -345,25 +375,188 @@
                 page.classList.add('kiosk-high-contrast');
             }
 
-            localStorage.setItem('kioskMode', mode);
+            localStorage.setItem(
+                'kioskMode',
+                mode
+            );
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
+        async function startCameraScanner() {
 
-            const savedMode = localStorage.getItem('kioskMode');
+            const reader =
+                document.getElementById('reader');
 
-            if (savedMode) {
-                setKioskMode(savedMode);
+            const stopButton =
+                document.getElementById(
+                    'stopScannerButton'
+                );
+
+            if (!reader) {
+                return;
             }
+
+            reader.style.display = 'block';
+
+            if (stopButton) {
+                stopButton.classList.remove('d-none');
+            }
+
+            try {
+
+                const cameras =
+                    await Html5Qrcode.getCameras();
+
+                if (!cameras ||
+                    cameras.length === 0) {
+
+                    alert(
+                        'No camera was found on this device.'
+                    );
+
+                    reader.style.display = 'none';
+
+                    if (stopButton) {
+                        stopButton.classList.add('d-none');
+                    }
+
+                    return;
+                }
+
+                html5QrCode =
+                    new Html5Qrcode('reader');
+
+                const cameraId =
+                    cameras.length > 1
+                        ? cameras[cameras.length - 1].id
+                        : cameras[0].id;
+
+                await html5QrCode.start(
+                    cameraId,
+                    {
+                        fps: 10,
+                        qrbox: {
+                            width: 250,
+                            height: 150
+                        }
+                    },
+                    onScanSuccess,
+                    onScanFailure
+                );
+
+            }
+            catch (error) {
+
+                console.error(error);
+
+                alert(
+                    'The camera could not be started. Please check camera permission.'
+                );
+
+                reader.style.display = 'none';
+
+                if (stopButton) {
+                    stopButton.classList.add('d-none');
+                }
+            }
+        }
+
+        async function onScanSuccess(
+            decodedText,
+            decodedResult
+        ) {
 
             const input =
-                document.getElementById('libraryCodeInput');
+                document.getElementById(
+                    'libraryCodeInput'
+                );
 
-            if (input) {
-                input.focus();
+            if (!input) {
+                return;
             }
 
-        });
+            input.value =
+                decodedText.trim();
+
+            await stopCameraScanner();
+
+            const form =
+                document.getElementById(
+                    'itemScanForm'
+                );
+
+            if (form) {
+                form.requestSubmit();
+            }
+        }
+
+        function onScanFailure(errorMessage) {
+            // Scanner keeps running until a valid code is found.
+        }
+
+        async function stopCameraScanner() {
+
+            const reader =
+                document.getElementById('reader');
+
+            const stopButton =
+                document.getElementById(
+                    'stopScannerButton'
+                );
+
+            if (html5QrCode) {
+
+                try {
+
+                    const state =
+                        html5QrCode.getState();
+
+                    if (state === 2 ||
+                        state === 3) {
+
+                        await html5QrCode.stop();
+                    }
+
+                    html5QrCode.clear();
+
+                }
+                catch (error) {
+                    console.error(error);
+                }
+
+                html5QrCode = null;
+            }
+
+            if (reader) {
+                reader.style.display = 'none';
+            }
+
+            if (stopButton) {
+                stopButton.classList.add('d-none');
+            }
+        }
+
+        document.addEventListener(
+            'DOMContentLoaded',
+            function () {
+
+                const savedMode =
+                    localStorage.getItem(
+                        'kioskMode'
+                    );
+
+                if (savedMode) {
+                    setKioskMode(savedMode);
+                }
+
+                const input =
+                    document.getElementById(
+                        'libraryCodeInput'
+                    );
+
+                if (input) {
+                    input.focus();
+                }
+            });
 
     </script>
 }
