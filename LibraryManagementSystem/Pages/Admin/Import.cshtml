@@ -4,85 +4,33 @@
     ViewData["Title"] = "CSV Import";
 }
 
-<h1>Admin - CSV Import</h1>
-
-<form method="post" enctype="multipart/form-data" asp-page-handler="Preview">
-    <div asp-validation-summary="All" class="text-danger"></div>
-
-    <div>
-        <label asp-for="UploadFile">CSV file</label>
-        <input asp-for="UploadFile" type="file" />
+<div class="container py-4">
+    <div class="mb-4">
+        <h1 class="fw-bold mb-1">Import Library Items</h1>
+        <p class="text-muted mb-0">Upload a CSV file to preview and import new inventory items.</p>
     </div>
 
-    <div>
-        <button type="submit">Preview</button>
-    </div>
-</form>
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-@if (TempData["ImportResult"] != null)
-{
-    <div class="alert alert-info">@TempData["ImportResult"]</div>
-}
+    @if (TempData["ImportResult"] != null)
+    {
+        <div class="alert alert-info">@TempData["ImportResult"]</div>
+    }
 
-@if (TempData["ImportError"] != null)
-{
-    <div class="alert alert-danger">@TempData["ImportError"]</div>
-}
+    @if (TempData["ImportError"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ImportError"]</div>
+    }
 
-@if (Model.Preview != null)
-{
-    <h2>Preview</h2>
-    <p>Total: @Model.Preview.TotalRows, Valid: @Model.Preview.ValidCount, Invalid: @Model.Preview.InvalidCount, Duplicates: @Model.Preview.DuplicateCount</p>
-
-    <h3>Valid Rows</h3>
-    <table>
-        <thead><tr><th>Row</th><th>LibraryCode</th><th>Name</th><th>Type</th></tr></thead>
-        <tbody>
-            @foreach (var r in Model.Preview.ValidRows)
-            {
-                <tr><td>@r.RowNumber</td><td>@r.Item?.LibraryCode</td><td>@r.Item?.Name</td><td>@r.Item?.ItemType</td></tr>
-            }
-        </tbody>
-    </table>
-
-    <h3>Invalid Rows</h3>
-    <table>
-        <thead><tr><th>Row</th><th>LibraryCode</th><th>Errors</th></tr></thead>
-        <tbody>
-            @foreach (var r in Model.Preview.InvalidRows)
-            {
-                <tr>
-                    <td>@r.RowNumber</td>
-                    <td>@r.Item?.LibraryCode</td>
-                    <td>
-                        <ul>
-                            @foreach (var e in r.Errors)
-                            {
-                                <li>@e</li>
-                            }
-                        </ul>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-
-    <h3>Duplicates</h3>
-    <table>
-        <thead><tr><th>Row</th><th>LibraryCode</th><th>Reason</th></tr></thead>
-        <tbody>
-            @foreach (var r in Model.Preview.Duplicates)
-            {
-                <tr><td>@r.RowNumber</td><td>@r.Item?.LibraryCode</td><td>@string.Join(", ", r.Errors)</td></tr>
-            }
-        </tbody>
-    </table>
-
-    <form method="post" asp-page-handler="Confirm">
-        <button type="submit">Confirm and Import Valid Rows</button>
+    <form method="post" enctype="multipart/form-data" asp-page-handler="Preview" class="card card-body shadow-sm border-0 rounded-4 mb-4">
+        <div class="mb-3">
+            <label asp-for="UploadFile" class="form-label fw-semibold">CSV file</label>
+            <input asp-for="UploadFile" type="file" accept=".csv,text/csv" class="form-control" required />
+            <div class="form-text">The CSV must include ItemType, Name, LibraryCode, and BranchCode columns.</div>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">Preview Import</button>
+            <a asp-controller="Manager" asp-action="Items" class="btn btn-outline-secondary ms-2">Back to Items</a>
+        </div>
     </form>
-
-    <form method="post" asp-page-handler="DownloadErrors">
-        <button type="submit">Download Error Report (CSV)</button>
-    </form>
-}
+</div>

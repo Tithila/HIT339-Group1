@@ -76,6 +76,38 @@ public class ManagerController : Controller
         return View(model);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Items()
+    {
+        var items = await _context.Items
+            .OrderBy(i => i.Name)
+            .ThenBy(i => i.LibraryCode)
+            .ToListAsync();
+
+        return View(items);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateItemStatus(int id, ItemStatus status)
+    {
+        if (!Enum.IsDefined(status))
+        {
+            return BadRequest();
+        }
+
+        var item = await _context.Items.FindAsync(id);
+        if (item == null)
+        {
+            return NotFound();
+        }
+
+        item.Status = status;
+        await _context.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Items));
+    }
+
     // CSV export endpoints
     [HttpGet]
     public async Task<IActionResult> ExportItemsCsv(bool anonymize = false)

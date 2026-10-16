@@ -7,7 +7,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace LibraryManagementSystem.Pages.Admin;
 
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Manager")]
 public class ImportModel : PageModel
 {
     private static readonly TimeSpan PreviewLifetime = TimeSpan.FromMinutes(20);
@@ -43,6 +43,7 @@ public class ImportModel : PageModel
             var previewId = Guid.NewGuid().ToString("N");
             _cache.Set(GetPreviewCacheKey(previewId), Preview, PreviewLifetime);
             TempData["ImportPreviewId"] = previewId;
+            return RedirectToPage("/Admin/ImportPreview");
         }
         catch (Exception ex)
         {

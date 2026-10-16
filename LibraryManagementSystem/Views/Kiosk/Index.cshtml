@@ -34,6 +34,7 @@
                 High Contrast
             </button>
         </div>
+
     </div>
 
     <div class="row justify-content-center">
@@ -49,34 +50,47 @@
                              class="text-danger mb-3">
                         </div>
 
-                        <div class="mb-4">
-                            <label asp-for="LibraryCode"
-                                   class="form-label fw-semibold fs-5">
+                        <input asp-for="LibraryCode"
+                               id="libraryCodeInput"
+                               type="hidden" />
+
+                        <div class="mt-4">
+                            <label asp-for="LibraryCardNumber"
+                                   class="form-label fw-semibold">
+                                Library Card Number <span class="text-muted">(required for checkout)</span>
                             </label>
 
-                            <input asp-for="LibraryCode"
-                                   id="libraryCodeInput"
+                            <input asp-for="LibraryCardNumber"
+                                   id="kioskLibraryCardNumber"
                                    class="form-control form-control-lg"
-                                   placeholder="Example: BK001"
-                                   autofocus />
-
-                            <span asp-validation-for="LibraryCode"
-                                  class="text-danger">
-                            </span>
+                                   placeholder="Example: LC-7A3F92D1" />
                         </div>
 
-                        <div class="d-grid gap-3">
-                            <button type="submit"
-                                    class="btn btn-primary btn-lg py-3">
-                                Check Item
-                            </button>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-4">
+                                <button type="button"
+                                        id="startScannerButton"
+                                        class="btn btn-outline-primary btn-lg w-100 py-3">
+                                    <span aria-hidden="true">▣</span>
+                                    Scan with camera
+                                </button>
+                            </div>
 
-                            <button type="button"
-                                    id="startScannerButton"
-                                    class="btn btn-outline-primary btn-lg py-3">
-                                <span aria-hidden="true">▣</span>
-                                Scan with camera
-                            </button>
+                            <div class="col-md-4">
+                                <button type="submit"
+                                        class="btn btn-success btn-lg w-100 py-3"
+                                        formaction="@Url.Action("CheckOut", "Kiosk")">
+                                    Check Out
+                                </button>
+                            </div>
+
+                            <div class="col-md-4">
+                                <button type="submit"
+                                        class="btn btn-warning btn-lg w-100 py-3"
+                                        formaction="@Url.Action("CheckIn", "Kiosk")">
+                                    Check In
+                                </button>
+                            </div>
                         </div>
 
                         <div id="scannerPanel"
@@ -96,6 +110,20 @@
                                 Stop camera
                             </button>
                         </div>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.ActionMessage))
+                        {
+                            <div class="alert alert-success mt-4 mb-0" role="alert">
+                                @Model.ActionMessage
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(Model.ActionError))
+                        {
+                            <div class="alert alert-danger mt-4 mb-0" role="alert">
+                                @Model.ActionError
+                            </div>
+                        }
 
                     </form>
 
@@ -197,6 +225,19 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <script>
+        function syncKioskFields(form) {
+            const codeInput = document.getElementById('libraryCodeInput');
+            const cardInput = document.getElementById('kioskLibraryCardNumber');
+            const codeField = form.querySelector('[name="LibraryCode"]');
+            const cardField = form.querySelector('[name="LibraryCardNumber"]');
+
+            codeField.value = codeInput.value.trim();
+
+            if (cardField) {
+                cardField.value = cardInput.value.trim();
+            }
+        }
+
         let kioskScanner = null;
 
         const scannerPanel = document.getElementById('scannerPanel');
