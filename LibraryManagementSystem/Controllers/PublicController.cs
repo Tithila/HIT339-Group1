@@ -22,16 +22,39 @@ public class PublicController : Controller
     public async Task<IActionResult> Search(
         string? searchTerm,
         string? itemType,
-        ItemStatus? status)
+        ItemStatus? status,
+        int? branchId,
+        bool searched = false)
     {
-        // Include branch information so the public catalogue
-        // can show the physical location of each library item.
+        var branches = await _context.Branches
+            .AsNoTracking()
+            .OrderBy(b => b.Name)
+            .ToListAsync();
+
+        // Initial page load:
+        // do NOT display the entire catalogue yet.
+        if (!searched)
+        {
+            var initialModel = new PublicSearchViewModel
+            {
+                SearchTerm = searchTerm,
+                ItemType = itemType,
+                Status = status,
+                BranchId = branchId,
+                Branches = branches,
+                Results = new List<Item>(),
+                HasSearched = false
+            };
+
+            return View(initialModel);
+        }
+
         var query = _context.Items
             .Include(i => i.Branch)
             .AsNoTracking()
             .AsQueryable();
 
-        // Search by item name, library code or description.
+        // Search by item name, code or description.
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             searchTerm = searchTerm.Trim();
@@ -42,29 +65,30 @@ public class PublicController : Controller
                 i.Description.Contains(searchTerm));
         }
 
-        // Filter by library item type.
+        // Filter by item type.
         if (!string.IsNullOrWhiteSpace(itemType))
         {
             query = itemType switch
             {
-                "Book" =>
-                    query.Where(i => i is Book),
-
-                "Music" =>
-                    query.Where(i => i is Music),
-
-                "Toy" =>
-                    query.Where(i => i is Toy),
-
+                "Book" => query.Where(i => i is Book),
+                "Music" => query.Where(i => i is Music),
+                "Toy" => query.Where(i => i is Toy),
                 _ => query
             };
         }
 
-        // Filter by availability/status.
+        // Filter by status.
         if (status.HasValue)
         {
             query = query.Where(
                 i => i.Status == status.Value);
+        }
+
+        // Filter by physical branch.
+        if (branchId.HasValue)
+        {
+            query = query.Where(
+                i => i.BranchId == branchId.Value);
         }
 
         var results = await query
@@ -76,7 +100,10 @@ public class PublicController : Controller
             SearchTerm = searchTerm,
             ItemType = itemType,
             Status = status,
-            Results = results
+            BranchId = branchId,
+            Branches = branches,
+            Results = results,
+            HasSearched = true
         };
 
         return View(model);

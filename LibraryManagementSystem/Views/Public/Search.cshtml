@@ -12,19 +12,26 @@
         </h1>
 
         <p class="text-muted mb-0">
-            Search the catalogue by name, library code,
-            item type, availability, and branch location.
+            Search the catalogue by name, library code, item type,
+            availability, or library branch.
         </p>
     </div>
 
+    <!-- SEARCH FILTERS -->
     <div class="card shadow-sm border-0 rounded-4 mb-4">
         <div class="card-body p-4">
 
             <form method="get"
+                  asp-controller="Public"
                   asp-action="Search"
                   class="row g-3 align-items-end">
 
-                <div class="col-md-5">
+                <input type="hidden"
+                       name="searched"
+                       value="true" />
+
+                <!-- SEARCH -->
+                <div class="col-lg-4 col-md-6">
                     <label class="form-label fw-semibold">
                         Search
                     </label>
@@ -33,10 +40,11 @@
                            name="searchTerm"
                            value="@Model.SearchTerm"
                            class="form-control"
-                           placeholder="Name, code or description" />
+                           placeholder="Name, library code or description" />
                 </div>
 
-                <div class="col-md-3">
+                <!-- ITEM TYPE -->
+                <div class="col-lg-2 col-md-6">
                     <label class="form-label fw-semibold">
                         Item Type
                     </label>
@@ -44,29 +52,63 @@
                     <select name="itemType"
                             class="form-select">
 
-                        <option value="">
-                            All Types
-                        </option>
+                        @if (string.IsNullOrWhiteSpace(Model.ItemType))
+                        {
+                            <option value="" selected>
+                                All Types
+                            </option>
+                        }
+                        else
+                        {
+                            <option value="">
+                                All Types
+                            </option>
+                        }
 
-                        <option value="Book"
-                                selected="@(Model.ItemType == "Book")">
-                            Book
-                        </option>
+                        @if (Model.ItemType == "Book")
+                        {
+                            <option value="Book" selected>
+                                Book
+                            </option>
+                        }
+                        else
+                        {
+                            <option value="Book">
+                                Book
+                            </option>
+                        }
 
-                        <option value="Music"
-                                selected="@(Model.ItemType == "Music")">
-                            Music
-                        </option>
+                        @if (Model.ItemType == "Music")
+                        {
+                            <option value="Music" selected>
+                                Music
+                            </option>
+                        }
+                        else
+                        {
+                            <option value="Music">
+                                Music
+                            </option>
+                        }
 
-                        <option value="Toy"
-                                selected="@(Model.ItemType == "Toy")">
-                            Toy
-                        </option>
+                        @if (Model.ItemType == "Toy")
+                        {
+                            <option value="Toy" selected>
+                                Toy
+                            </option>
+                        }
+                        else
+                        {
+                            <option value="Toy">
+                                Toy
+                            </option>
+                        }
 
                     </select>
                 </div>
 
-                <div class="col-md-3">
+                <!-- STATUS -->
+                <div class="col-lg-2 col-md-6">
                     <label class="form-label fw-semibold">
                         Status
                     </label>
@@ -74,23 +116,82 @@
                     <select name="status"
                             class="form-select">
 
-                        <option value="">
-                            All Statuses
-                        </option>
+                        @if (!Model.Status.HasValue)
+                        {
+                            <option value="" selected>
+                                All Statuses
+                            </option>
+                        }
+                        else
+                        {
+                            <option value="">
+                                All Statuses
+                            </option>
+                        }
 
-                        @foreach (var status in
+                        @foreach (var statusValue in
                             Enum.GetValues<LibraryManagementSystem.Models.ItemStatus>())
                         {
-                            <option value="@status"
-                                    selected="@(Model.Status == status)">
-                                @status
-                            </option>
+                            if (Model.Status == statusValue)
+                            {
+                                <option value="@statusValue" selected>
+                                    @statusValue
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="@statusValue">
+                                    @statusValue
+                                </option>
+                            }
                         }
 
                     </select>
                 </div>
 
-                <div class="col-md-1">
+                <!-- BRANCH -->
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label fw-semibold">
+                        Branch
+                    </label>
+
+                    <select name="branchId"
+                            class="form-select">
+
+                        @if (!Model.BranchId.HasValue)
+                        {
+                            <option value="" selected>
+                                All Branches
+                            </option>
+                        }
+                        else
+                        {
+                            <option value="">
+                                All Branches
+                            </option>
+                        }
+
+                        @foreach (var branch in Model.Branches)
+                        {
+                            if (Model.BranchId == branch.Id)
+                            {
+                                <option value="@branch.Id" selected>
+                                    @branch.Name
+                                </option>
+                            }
+                            else
+                            {
+                                <option value="@branch.Id">
+                                    @branch.Name
+                                </option>
+                            }
+                        }
+
+                    </select>
+                </div>
+
+                <!-- SEARCH BUTTON -->
+                <div class="col-lg-1 col-md-12">
                     <button type="submit"
                             class="btn btn-primary w-100">
                         Search
@@ -102,15 +203,47 @@
         </div>
     </div>
 
-    @if (Model.Results.Count == 0)
+    <!-- INITIAL PAGE -->
+    @if (!Model.HasSearched)
     {
-        <div class="alert alert-info shadow-sm border-0 rounded-4">
-            No items found matching your search.
+        <div class="text-center py-5 text-muted">
+
+            <h4 class="fw-semibold">
+                Search the Library Catalogue
+            </h4>
+
+            <p class="mb-0">
+                Enter a search term or select filters above
+                to find library items.
+            </p>
+
         </div>
     }
-    else
+
+    <!-- NO RESULTS -->
+    @if (Model.HasSearched && Model.Results.Count == 0)
     {
-        <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="alert alert-info shadow-sm border-0 rounded-4">
+
+            <strong>
+                No items found.
+            </strong>
+
+            <div>
+                Try changing your search term or filters.
+            </div>
+
+        </div>
+    }
+
+    <!-- SEARCH RESULTS -->
+    @if (Model.HasSearched && Model.Results.Count > 0)
+    {
+        <div class="d-flex justify-content-between
+            align-items-center
+            flex-wrap
+            gap-2
+            mb-3">
 
             <h4 class="fw-semibold mb-0">
                 Search Results
@@ -128,11 +261,19 @@
             {
                 <div class="col-12 col-md-6 col-lg-4">
 
-                    <div class="card shadow-sm border-0 rounded-4 h-100">
+                    <div class="card shadow-sm
+                        border-0
+                        rounded-4
+                        h-100">
 
                         <div class="card-body p-4">
 
-                            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                            <!-- NAME + STATUS -->
+                            <div class="d-flex
+                                justify-content-between
+                                align-items-start
+                                gap-3
+                                mb-3">
 
                                 <h5 class="fw-bold mb-0">
                                     @item.Name
@@ -161,17 +302,19 @@
                                 }
                                 else
                                 {
-                                    <span class="badge bg-danger">
-                                        Destroyed
+                                    <span class="badge bg-secondary">
+                                        @item.Status
                                     </span>
                                 }
 
                             </div>
 
+                            <!-- DESCRIPTION -->
                             <p class="text-muted mb-4">
                                 @item.Description
                             </p>
 
+                            <!-- LIBRARY CODE -->
                             <div class="mb-3">
 
                                 <span class="text-muted small">
@@ -184,6 +327,7 @@
 
                             </div>
 
+                            <!-- ITEM TYPE + BRANCH -->
                             <div class="row g-3">
 
                                 <div class="col-6">
