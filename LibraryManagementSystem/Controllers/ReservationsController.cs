@@ -63,6 +63,7 @@ public class ReservationsController : Controller
         catch (InvalidOperationException ex)
         {
             ModelState.AddModelError("", ex.Message);
+
             await LoadDropdownsAsync(itemId, borrowerId);
 
             return View();
@@ -104,6 +105,59 @@ public class ReservationsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    // GET: Reservations/Collect/5
+    public async Task<IActionResult> Collect(int id)
+    {
+        var reservation = await _context.Reservations
+            .Include(r => r.Item)
+            .Include(r => r.Borrower)
+            .FirstOrDefaultAsync(r => r.Id == id);
+
+        if (reservation == null)
+            return NotFound();
+
+        if (reservation.Status !=
+            ReservationStatus.ReadyForPickup)
+        {
+            TempData["ErrorMessage"] =
+                "This reservation is not ready for collection.";
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        ViewBag.SuggestedDueDate =
+            DateTime.Today.AddDays(14);
+
+        return View(reservation);
+    }
+
+    // POST: Reservations/Collect/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [ActionName("Collect")]
+    public async Task<IActionResult> CollectConfirmed(
+        int id,
+        DateTime dueDate)
+    {
+        try
+        {
+            await _reservationService
+                .CollectReservationAsync(id, dueDate);
+
+            TempData["SuccessMessage"] =
+                "Reserved item collected successfully.";
+
+            return RedirectToAction(nameof(Index));
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    // Load item and borrower dropdown menus
     private async Task LoadDropdownsAsync(
         int? selectedItemId = null,
         int? selectedBorrowerId = null)

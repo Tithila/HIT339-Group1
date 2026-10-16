@@ -20,7 +20,8 @@
     </div>
 }
 
-<a asp-action="Create" class="btn btn-primary mb-3">
+<a asp-action="Create"
+   class="btn btn-primary mb-3">
     Create Reservation
 </a>
 
@@ -34,23 +35,47 @@
             <th>Actions</th>
         </tr>
     </thead>
+
     <tbody>
         @foreach (var reservation in Model)
         {
             <tr>
-                <td>@reservation.Item?.Name</td>
-                <td>@reservation.Borrower?.FullName</td>
+                <td>
+                    @reservation.Item?.Name
+                </td>
+
+                <td>
+                    @reservation.Borrower?.FullName
+                </td>
+
                 <td>
                     @reservation.RequestedDate.ToString("dd MMM yyyy")
                 </td>
-                <td>@reservation.Status</td>
+
                 <td>
+                    @reservation.Status
+                </td>
+
+                <td>
+                    <!-- View waiting list -->
                     <a asp-action="Waitlist"
                        asp-route-id="@reservation.ItemId"
                        class="btn btn-sm btn-outline-primary">
                         Waitlist
                     </a>
 
+                    <!-- Shereena: Collect reserved item -->
+                    @if (reservation.Status ==
+                        LibraryManagementSystem.Models.ReservationStatus.ReadyForPickup)
+                    {
+                        <a asp-action="Collect"
+                           asp-route-id="@reservation.Id"
+                           class="btn btn-sm btn-success">
+                            Collect
+                        </a>
+                    }
+
+                    <!-- Cancel active reservation -->
                     @if (reservation.Status ==
                         LibraryManagementSystem.Models.ReservationStatus.Waiting ||
                         reservation.Status ==
@@ -60,10 +85,12 @@
                               asp-route-id="@reservation.Id"
                               method="post"
                               class="d-inline">
+
                             @Html.AntiForgeryToken()
 
                             <button type="submit"
-                                    class="btn btn-sm btn-danger">
+                                    class="btn btn-sm btn-danger"
+                                    onclick="return confirm('Are you sure you want to cancel this reservation?');">
                                 Cancel
                             </button>
                         </form>
@@ -73,3 +100,10 @@
         }
     </tbody>
 </table>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        No reservations have been recorded yet.
+    </div>
+}

@@ -1,0 +1,66 @@
+﻿@model LibraryManagementSystem.Models.Reservation
+
+@{
+    ViewData["Title"] = "Collect Reservation";
+    DateTime suggestedDueDate =
+        ViewBag.SuggestedDueDate ?? DateTime.Today.AddDays(14);
+}
+
+<h1>Collect Reserved Item</h1>
+
+<div class="card mt-3">
+    <div class="card-body">
+
+        <h4>Reservation Details</h4>
+
+        <p><strong>Item:</strong> @Model.Item?.Name</p>
+
+        <p>
+            <strong>Library Code:</strong>
+            @Model.Item?.LibraryCode
+        </p>
+
+        <p>
+            <strong>Borrower:</strong>
+            @Model.Borrower?.FullName
+        </p>
+
+        <p><strong>Status:</strong> @Model.Status</p>
+
+        <p>
+            <strong>Pickup Expiry:</strong>
+            @(Model.ExpiryDate?.ToString("dd MMM yyyy HH:mm")
+                ?? "Not specified")
+        </p>
+
+        <form asp-action="Collect"
+              asp-route-id="@Model.Id"
+              method="post">
+
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label for="dueDate" class="form-label">
+                    Loan Due Date
+                </label>
+
+                <input type="date"
+                       id="dueDate"
+                       name="dueDate"
+                       class="form-control"
+                       value="@suggestedDueDate.ToString("yyyy-MM-dd")"
+                       min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")"
+                       required />
+
+            </div>
+
+            <button type="submit" class="btn btn-success">
+                Confirm Collection
+            </button>
+
+            <a asp-action="Index" class="btn btn-secondary">
+                Cancel
+            </a>
+        </form>
+    </div>
+</div>

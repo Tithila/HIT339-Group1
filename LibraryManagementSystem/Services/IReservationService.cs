@@ -5,13 +5,28 @@ namespace LibraryManagementSystem.Services;
 
 public interface IReservationService
 {
+    // Create a reservation
     Task<Reservation> PlaceReservationAsync(
         int itemId,
         int borrowerId);
 
-    Task<List<Reservation>> GetWaitlistAsync(int itemId);
+    // View the waiting list
+    Task<List<Reservation>> GetWaitlistAsync(
+        int itemId);
 
-    Task<bool> CancelReservationAsync(int reservationId);
+    // Cancel a reservation
+    Task<bool> CancelReservationAsync(
+        int reservationId);
 
-    Task<Reservation?> PromoteNextAsync(int itemId);
+    // Promote the next waiting borrower
+    Task<Reservation?> PromoteNextAsync(
+        int itemId);
+
+    // Collect a reserved library item
+    Task<Loan> CollectReservationAsync(
+        int reservationId,
+        DateTime dueDate);
+
+    // Automatically expire uncollected reservations
+    Task<int> ProcessExpiredReservationsAsync();
 }

@@ -1,5 +1,4 @@
-﻿
-using LibraryManagementSystem.Data;
+﻿using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Models;
 using LibraryManagementSystem.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -17,19 +16,25 @@ public class ReceptionController : Controller
     private readonly IBorrowerEligibilityService _borrowerEligibilityService;
     private readonly IAuditService _auditService;
     private readonly INotificationService _notificationService;
+    private readonly IReservationService _reservationService;
+    private readonly ILogger<ReceptionController> _logger;
 
     public ReceptionController(
         ApplicationDbContext context,
         IFineCalculator fineCalculator,
         IBorrowerEligibilityService borrowerEligibilityService,
         IAuditService auditService,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IReservationService reservationService,
+        ILogger<ReceptionController> logger)
     {
         _context = context;
         _fineCalculator = fineCalculator;
         _borrowerEligibilityService = borrowerEligibilityService;
         _auditService = auditService;
         _notificationService = notificationService;
+        _reservationService = reservationService;
+        _logger = logger;
     }
 
     // GET: Reception/Borrow
@@ -85,7 +90,7 @@ public class ReceptionController : Controller
             return View(model);
         }
 
-        // Prevent borrowing an item held for a reservation.
+        // Shereena: Protect reservations ready for pickup.
         var reservedForPickup = await _context.Reservations
             .AnyAsync(r =>
                 r.ItemId == item.Id &&
@@ -95,7 +100,24 @@ public class ReceptionController : Controller
         {
             ModelState.AddModelError(
                 nameof(model.LibraryCode),
-                "This item is reserved for pickup and cannot be borrowed through the normal checkout process.");
+                "This item is reserved for pickup and cannot " +
+                "be borrowed through the normal checkout process.");
+
+            return View(model);
+        }
+
+        // Do not bypass an existing waiting queue.
+        var hasWaitingReservations = await _context.Reservations
+            .AnyAsync(r =>
+                r.ItemId == item.Id &&
+                r.Status == ReservationStatus.Waiting);
+
+        if (hasWaitingReservations)
+        {
+            ModelState.AddModelError(
+                nameof(model.LibraryCode),
+                "This item has an active waiting list. " +
+                "Process the next reservation before normal checkout.");
 
             return View(model);
         }
@@ -117,7 +139,8 @@ public class ReceptionController : Controller
         {
             ModelState.AddModelError(
                 nameof(model.BorrowerId),
-                "This borrower is currently suspended and cannot borrow items.");
+                "This borrower is currently suspended " +
+                "and cannot borrow items.");
 
             return View(model);
         }
@@ -136,17 +159,19 @@ public class ReceptionController : Controller
         item.Status = ItemStatus.Borrowed;
 
         _context.Loans.Add(loan);
+
         await _context.SaveChangesAsync();
 
+        // Preserve existing audit logging.
         await _auditService.LogAsync(
             "Borrow",
             "Loan",
             loan.Id,
-            $"{item.Name} ({item.LibraryCode}) borrowed by {borrower.FullName}",
+            $"{item.Name} ({item.LibraryCode}) " +
+            $"borrowed by {borrower.FullName}",
             User.Identity?.Name);
 
-        // Shereena: Simulated borrowing notification.
-        // Notification failure must not undo a completed loan.
+        // Shereena: Simulated borrowing confirmation.
         try
         {
             await _notificationService.SendAsync(
@@ -159,14 +184,21 @@ public class ReceptionController : Controller
                 $"({item.LibraryCode}). " +
                 $"Your due date is {loan.DueDate:dd MMM yyyy}.");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogError(
+                ex,
+                "Failed to record borrowing notification for loan {LoanId}",
+                loan.Id);
+
             TempData["NotificationWarning"] =
-                "The item was borrowed successfully, but the notification could not be recorded.";
+                "The item was borrowed successfully, " +
+                "but the notification could not be recorded.";
         }
 
         TempData["SuccessMessage"] =
-            $"{item.Name} has been borrowed by {borrower.FullName}.";
+            $"{item.Name} has been borrowed by " +
+            $"{borrower.FullName}.";
 
         return RedirectToAction(nameof(Borrow));
     }
@@ -221,10 +253,11 @@ public class ReceptionController : Controller
         loan.IsOverdue =
             loan.ReturnDate.Value.Date > loan.DueDate.Date;
 
+        // Preserve Kinley's fine calculation.
         loan.FineAmount =
             await _fineCalculator.CalculateFineAsync(loan);
 
-        // Preserve Kinley's existing return condition logic.
+        // Preserve existing return condition handling.
         item.Status = model.Condition switch
         {
             ItemConditionResult.Good => ItemStatus.Available,
@@ -233,7 +266,7 @@ public class ReceptionController : Controller
             _ => ItemStatus.Available
         };
 
-        // Save the return inspection.
+        // Preserve return inspection.
         var inspection = new ReturnInspection
         {
             LoanId = loan.Id,
@@ -248,23 +281,24 @@ public class ReceptionController : Controller
 
         await _context.SaveChangesAsync();
 
-        // Recheck borrower eligibility after the return.
+        // Preserve borrower eligibility checks.
         await _borrowerEligibilityService
             .CheckAndUpdateSuspensionAsync(loan.BorrowerId);
 
-        // Preserve existing audit logging.
+        // Preserve audit logging.
         await _auditService.LogAsync(
             "Return",
             "Loan",
             loan.Id,
-            $"{item.Name} ({item.LibraryCode}) returned by {loan.Borrower?.FullName}. " +
+            $"{item.Name} ({item.LibraryCode}) " +
+            $"returned by {loan.Borrower?.FullName}. " +
             $"Condition: {model.Condition}. " +
             $"Fine: ${loan.FineAmount:F2}. " +
             $"Repair Cost: ${model.RepairCost:F2}. " +
             $"Replacement Cost: ${model.ReplacementCost:F2}.",
             User.Identity?.Name);
 
-        // Shereena: Simulated fine notification.
+        // Shereena: Notify borrower if a fine is incurred.
         if (loan.FineAmount > 0 &&
             loan.Borrower != null)
         {
@@ -280,10 +314,55 @@ public class ReceptionController : Controller
                     $"has an outstanding fine of " +
                     $"${loan.FineAmount:F2}.");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError(
+                    ex,
+                    "Failed to record fine notification for loan {LoanId}",
+                    loan.Id);
+
                 TempData["NotificationWarning"] =
-                    "The return was processed, but the fine notification could not be recorded.";
+                    "The return was processed, but the fine " +
+                    "notification could not be recorded.";
+            }
+        }
+
+        // SHEREENA: AUTOMATIC WAITLIST PROMOTION
+        // Promote only if the item is returned in good condition.
+        if (item.Status == ItemStatus.Available)
+        {
+            try
+            {
+                var nextReservation =
+                    await _reservationService.PromoteNextAsync(item.Id);
+
+                if (nextReservation != null)
+                {
+                    TempData["ReservationMessage"] =
+                        $"{item.Name} has been reserved for the " +
+                        "next patron in the waiting list. " +
+                        "A simulated pickup notification was recorded.";
+
+                    await _auditService.LogAsync(
+                        "Reservation Ready",
+                        "Reservation",
+                        nextReservation.Id,
+                        $"Item {item.Name} ({item.LibraryCode}) " +
+                        "allocated to the next waiting patron.",
+                        User.Identity?.Name);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Reservation promotion or notification failed for item {ItemId}",
+                    item.Id);
+
+                TempData["ReservationWarning"] =
+                    "The return was completed, but reservation " +
+                    "promotion or notification encountered an error. " +
+                    "Please check Reservation Management.";
             }
         }
 
@@ -371,12 +450,15 @@ public class ReceptionController : Controller
             "Fine Paid",
             "Loan",
             loan.Id,
-            $"Fine of ${loan.FineAmount:F2} paid by {loan.Borrower?.FullName} " +
-            $"for {loan.Item?.Name} ({loan.Item?.LibraryCode})",
+            $"Fine of ${loan.FineAmount:F2} " +
+            $"paid by {loan.Borrower?.FullName} " +
+            $"for {loan.Item?.Name} " +
+            $"({loan.Item?.LibraryCode})",
             User.Identity?.Name);
 
         TempData["SuccessMessage"] =
-            $"Fine of ${loan.FineAmount:F2} has been marked as paid.";
+            $"Fine of ${loan.FineAmount:F2} " +
+            "has been marked as paid.";
 
         return RedirectToAction(nameof(Fines));
     }
