@@ -7,10 +7,13 @@
 <h1>Admin - CSV Import</h1>
 
 <form method="post" enctype="multipart/form-data" asp-page-handler="Preview">
+    <div asp-validation-summary="All" class="text-danger"></div>
+
     <div>
-        <label for="file">CSV file</label>
-        <input type="file" name="UploadFile" />
+        <label asp-for="UploadFile">CSV file</label>
+        <input asp-for="UploadFile" type="file" />
     </div>
+
     <div>
         <button type="submit">Preview</button>
     </div>
@@ -78,4 +81,3 @@
         <button type="submit">Download Error Report (CSV)</button>
     </form>
 }
-
