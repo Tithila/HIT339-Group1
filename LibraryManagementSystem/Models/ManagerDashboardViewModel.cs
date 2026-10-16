@@ -1,4 +1,6 @@
-﻿namespace LibraryManagementSystem.Models;
+﻿using LibraryManagementSystem.Services;
+
+namespace LibraryManagementSystem.Models;
 
 public class ManagerDashboardViewModel
 {
@@ -21,4 +23,9 @@ public class ManagerDashboardViewModel
     public decimal TotalRepairCost { get; set; }
     public decimal TotalReplacementCost { get; set; }
 
+    // Analytics
+    public List<MonthlyLoanStat>? MonthlyLoans { get; set; }
+    public List<BranchLoanStat>? LoansByBranch { get; set; }
+    public InventoryHealth? InventoryHealth { get; set; }
+    public List<ReservationDemandStat>? ReservationDemand { get; set; }
 }

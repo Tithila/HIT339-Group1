@@ -1,0 +1,81 @@
+@page
+@model LibraryManagementSystem.Pages.Admin.ImportModel
+@{
+    ViewData["Title"] = "CSV Import";
+}
+
+<h1>Admin - CSV Import</h1>
+
+<form method="post" enctype="multipart/form-data" asp-page-handler="Preview">
+    <div>
+        <label for="file">CSV file</label>
+        <input type="file" name="UploadFile" />
+    </div>
+    <div>
+        <button type="submit">Preview</button>
+    </div>
+</form>
+
+@if (TempData["ImportResult"] != null)
+{
+    <div class="alert alert-info">@TempData["ImportResult"]</div>
+}
+
+@if (Model.Preview != null)
+{
+    <h2>Preview</h2>
+    <p>Total: @Model.Preview.TotalRows, Valid: @Model.Preview.ValidCount, Invalid: @Model.Preview.InvalidCount, Duplicates: @Model.Preview.DuplicateCount</p>
+
+    <h3>Valid Rows</h3>
+    <table>
+        <thead><tr><th>Row</th><th>LibraryCode</th><th>Name</th><th>Type</th></tr></thead>
+        <tbody>
+            @foreach (var r in Model.Preview.ValidRows)
+            {
+                <tr><td>@r.RowNumber</td><td>@r.Item?.LibraryCode</td><td>@r.Item?.Name</td><td>@r.Item?.ItemType</td></tr>
+            }
+        </tbody>
+    </table>
+
+    <h3>Invalid Rows</h3>
+    <table>
+        <thead><tr><th>Row</th><th>LibraryCode</th><th>Errors</th></tr></thead>
+        <tbody>
+            @foreach (var r in Model.Preview.InvalidRows)
+            {
+                <tr>
+                    <td>@r.RowNumber</td>
+                    <td>@r.Item?.LibraryCode</td>
+                    <td>
+                        <ul>
+                            @foreach (var e in r.Errors)
+                            {
+                                <li>@e</li>
+                            }
+                        </ul>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h3>Duplicates</h3>
+    <table>
+        <thead><tr><th>Row</th><th>LibraryCode</th><th>Reason</th></tr></thead>
+        <tbody>
+            @foreach (var r in Model.Preview.Duplicates)
+            {
+                <tr><td>@r.RowNumber</td><td>@r.Item?.LibraryCode</td><td>@string.Join(", ", r.Errors)</td></tr>
+            }
+        </tbody>
+    </table>
+
+    <form method="post" asp-page-handler="Confirm">
+        <button type="submit">Confirm and Import Valid Rows</button>
+    </form>
+
+    <form method="post" asp-page-handler="DownloadErrors">
+        <button type="submit">Download Error Report (CSV)</button>
+    </form>
+}
+
