@@ -1,4 +1,3 @@
-
 using LibraryManagementSystem.Data;
 using LibraryManagementSystem.Services;
 using Microsoft.AspNetCore.Identity;
@@ -68,30 +67,21 @@ builder.Services.AddTransient<
     IEmailSender<IdentityUser>,
     DevelopmentEmailSender>();
 
+// Import and reporting services
+builder.Services.AddScoped<IImportService, ImportService>();
+builder.Services.AddScoped<IReportingService, ReportingService>();
+
+// Scheduled report generation (monthly PDF + weekly digest)
+builder.Services.AddHostedService<ScheduledReportService>();
+
 var app = builder.Build();
 
 // Apply database migrations and seed data
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    var context =
-        services.GetRequiredService<ApplicationDbContext>();
-
-    try
-    {
-        await context.Database.MigrateAsync();
-        await RoleSeeder.SeedRolesAsync(services);
-        await IdentitySeeder.SeedUsersAsync(services);
-        await LibraryDataSeeder.SeedAsync(context);
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogError(
-            ex,
-            "Database initialization failed during application startup.");
-
-        throw;
-    }
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate(); // applies pending migrations
+    await LibraryDataSeeder.SeedAsync(db); // then run your seeder
 }
 
 // Configure the HTTP request pipeline
