@@ -16,6 +16,7 @@
         </p>
 
         <div class="d-flex justify-content-center gap-2 flex-wrap">
+
             <button type="button"
                     class="btn btn-outline-secondary"
                     onclick="setKioskMode('standard')">
@@ -33,10 +34,12 @@
                     onclick="setKioskMode('contrast')">
                 High Contrast
             </button>
+
         </div>
     </div>
 
     <div class="row justify-content-center">
+
         <div class="col-lg-8">
 
             <div class="card shadow-sm border-0 rounded-4 mb-4">
@@ -126,6 +129,7 @@
                             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
 
                                 <div>
+
                                     <h2 class="fw-bold mb-1">
                                         @Model.Borrower.FullName
                                     </h2>
@@ -133,9 +137,11 @@
                                     <div class="text-muted">
                                         @Model.Borrower.LibraryCardNumber
                                     </div>
+
                                 </div>
 
                                 <div>
+
                                     @if (Model.Borrower.IsSuspended)
                                     {
                                         <span class="badge bg-danger fs-6 px-3 py-2">
@@ -148,6 +154,7 @@
                                             Active
                                         </span>
                                     }
+
                                 </div>
 
                             </div>
@@ -155,17 +162,27 @@
                             <hr />
 
                             <div class="mb-3">
-                                <strong>Email</strong>
+
+                                <strong>
+                                    Email
+                                </strong>
+
                                 <p class="text-muted mb-0">
                                     @Model.Borrower.Email
                                 </p>
+
                             </div>
 
                             <div class="mb-3">
-                                <strong>Phone</strong>
+
+                                <strong>
+                                    Phone
+                                </strong>
+
                                 <p class="text-muted mb-0">
                                     @Model.Borrower.Phone
                                 </p>
+
                             </div>
 
                             @if (Model.Borrower.IsSuspended)
@@ -177,10 +194,12 @@
                                     </strong>
 
                                     <div class="mt-2">
+
                                         @(string.IsNullOrWhiteSpace(
                                             Model.Borrower.SuspensionReason)
                                             ? "This library card is currently suspended."
                                             : Model.Borrower.SuspensionReason)
+
                                     </div>
 
                                 </div>
@@ -206,11 +225,13 @@
                             }
 
                         </div>
+
                     </div>
                 }
             }
 
         </div>
+
     </div>
 
 </div>
@@ -254,7 +275,9 @@
         async function startBorrowerCameraScanner() {
 
             const reader =
-                document.getElementById('borrowerReader');
+                document.getElementById(
+                    'borrowerReader'
+                );
 
             const stopButton =
                 document.getElementById(
@@ -273,11 +296,24 @@
 
             try {
 
+                const cameras =
+                    await Html5Qrcode.getCameras();
+
+                if (!cameras ||
+                    cameras.length === 0) {
+
+                    throw new Error(
+                        'No camera detected.'
+                    );
+                }
+
                 borrowerQrScanner =
-                    new Html5Qrcode('borrowerReader');
+                    new Html5Qrcode(
+                        'borrowerReader'
+                    );
 
                 await borrowerQrScanner.start(
-                    { facingMode: "environment" },
+                    cameras[0].id,
                     {
                         fps: 10,
                         qrbox: {
@@ -292,10 +328,13 @@
             }
             catch (error) {
 
-                console.error(error);
+                console.error(
+                    'Camera error:',
+                    error
+                );
 
                 alert(
-                    'The camera could not be started. You can still enter or scan the card manually.'
+                    'Camera could not be started. Please check that no other app is using your camera.'
                 );
 
                 reader.style.display = 'none';
@@ -337,14 +376,18 @@
             }
         }
 
-        function onBorrowerScanFailure(errorMessage) {
-            // Keep scanning until a valid code is detected.
+        function onBorrowerScanFailure(
+            errorMessage
+        ) {
+            // Keep scanning until a valid QR code is detected.
         }
 
         async function stopBorrowerCameraScanner() {
 
             const reader =
-                document.getElementById('borrowerReader');
+                document.getElementById(
+                    'borrowerReader'
+                );
 
             const stopButton =
                 document.getElementById(
@@ -368,7 +411,11 @@
 
                 }
                 catch (error) {
-                    console.error(error);
+
+                    console.error(
+                        'Camera stop error:',
+                        error
+                    );
                 }
 
                 borrowerQrScanner = null;
