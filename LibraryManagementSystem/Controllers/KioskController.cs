@@ -3,6 +3,7 @@ using LibraryManagementSystem.Models;
 using LibraryManagementSystem.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace LibraryManagementSystem.Controllers;
 
@@ -12,19 +13,26 @@ public class KioskController : Controller
     private readonly IFineCalculator _fineCalculator;
     private readonly IBorrowerEligibilityService _borrowerEligibilityService;
     private readonly IAuditService _auditService;
+    private readonly IPaymentService _paymentService;
+    private readonly SquareSettings _squareSettings;
 
     private const string KioskBorrowerSessionKey = "KioskBorrowerId";
+    private const string KioskFineLoanSessionKey = "KioskFineLoanId";
 
     public KioskController(
         ApplicationDbContext context,
         IFineCalculator fineCalculator,
         IBorrowerEligibilityService borrowerEligibilityService,
-        IAuditService auditService)
+        IAuditService auditService,
+        IPaymentService paymentService,
+        IOptions<SquareSettings> squareOptions)
     {
         _context = context;
         _fineCalculator = fineCalculator;
         _borrowerEligibilityService = borrowerEligibilityService;
         _auditService = auditService;
+        _paymentService = paymentService;
+        _squareSettings = squareOptions.Value;
     }
 
     // =========================================================
@@ -49,7 +57,8 @@ public class KioskController : Controller
             return View(model);
         }
 
-        var cardNumber = model.LibraryCardNumber.Trim();
+        var cardNumber =
+            model.LibraryCardNumber.Trim();
 
         var borrower = await _context.Borrowers
             .AsNoTracking()
@@ -59,7 +68,8 @@ public class KioskController : Controller
         model.SearchPerformed = true;
         model.Borrower = borrower;
 
-        if (borrower != null && !borrower.IsSuspended)
+        if (borrower != null &&
+            !borrower.IsSuspended)
         {
             HttpContext.Session.SetInt32(
                 KioskBorrowerSessionKey,
@@ -82,33 +92,37 @@ public class KioskController : Controller
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var borrower = await GetVerifiedBorrowerAsync();
+        var borrower =
+            await GetVerifiedBorrowerAsync();
 
         if (borrower == null)
         {
-            return RedirectToAction(nameof(Borrower));
+            return RedirectToAction(
+                nameof(Borrower));
         }
 
-        var model = new KioskCheckoutViewModel
-        {
-            Borrower = borrower
-        };
+        var model =
+            new KioskCheckoutViewModel
+            {
+                Borrower = borrower
+            };
 
         return View(model);
     }
 
     // POST: /Kiosk
-    // Scan / look up item
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Index(
         KioskCheckoutViewModel model)
     {
-        var borrower = await GetVerifiedBorrowerAsync();
+        var borrower =
+            await GetVerifiedBorrowerAsync();
 
         if (borrower == null)
         {
-            return RedirectToAction(nameof(Borrower));
+            return RedirectToAction(
+                nameof(Borrower));
         }
 
         model.Borrower = borrower;
@@ -118,7 +132,8 @@ public class KioskController : Controller
             return View(model);
         }
 
-        var code = model.LibraryCode.Trim();
+        var code =
+            model.LibraryCode.Trim();
 
         var item = await _context.Items
             .AsNoTracking()
@@ -137,11 +152,13 @@ public class KioskController : Controller
     public async Task<IActionResult> Checkout(
         string libraryCode)
     {
-        var borrower = await GetVerifiedBorrowerAsync();
+        var borrower =
+            await GetVerifiedBorrowerAsync();
 
         if (borrower == null)
         {
-            return RedirectToAction(nameof(Borrower));
+            return RedirectToAction(
+                nameof(Borrower));
         }
 
         var item = await _context.Items
@@ -153,7 +170,8 @@ public class KioskController : Controller
             TempData["KioskError"] =
                 "The item could not be found.";
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(
+                nameof(Index));
         }
 
         if (item.Status != ItemStatus.Available)
@@ -161,7 +179,8 @@ public class KioskController : Controller
             TempData["KioskError"] =
                 "This item is not currently available for checkout.";
 
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(
+                nameof(Index));
         }
 
         if (borrower.IsSuspended)
@@ -172,7 +191,8 @@ public class KioskController : Controller
             TempData["KioskError"] =
                 "This borrower is suspended and cannot borrow items.";
 
-            return RedirectToAction(nameof(Borrower));
+            return RedirectToAction(
+                nameof(Borrower));
         }
 
         var borrowDate = DateTime.Now;
@@ -203,16 +223,17 @@ public class KioskController : Controller
             $"{borrower.FullName} using self-service kiosk.",
             borrower.LibraryCardNumber);
 
-        var model = new KioskCheckoutViewModel
-        {
-            Borrower = borrower,
-            Item = item,
-            LibraryCode = item.LibraryCode,
-            ItemScanned = true,
-            CheckoutCompleted = true,
-            DueDate = dueDate,
-            LoanId = loan.Id
-        };
+        var model =
+            new KioskCheckoutViewModel
+            {
+                Borrower = borrower,
+                Item = item,
+                LibraryCode = item.LibraryCode,
+                ItemScanned = true,
+                CheckoutCompleted = true,
+                DueDate = dueDate,
+                LoanId = loan.Id
+            };
 
         return View("Index", model);
     }
@@ -225,11 +246,16 @@ public class KioskController : Controller
     [HttpGet]
     public IActionResult Return()
     {
-        return View(new KioskReturnViewModel());
+        // Starting a new return clears any previous
+        // fine-payment session.
+        HttpContext.Session.Remove(
+            KioskFineLoanSessionKey);
+
+        return View(
+            new KioskReturnViewModel());
     }
 
     // POST: /Kiosk/Return
-    // Scan item and find active loan
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Return(
@@ -240,7 +266,8 @@ public class KioskController : Controller
             return View(model);
         }
 
-        var code = model.LibraryCode.Trim();
+        var code =
+            model.LibraryCode.Trim();
 
         var item = await _context.Items
             .AsNoTracking()
@@ -259,9 +286,10 @@ public class KioskController : Controller
             .AsNoTracking()
             .Include(l => l.Borrower)
             .Include(l => l.Item)
-            .FirstOrDefaultAsync(l =>
-                l.ItemId == item.Id &&
-                l.ReturnDate == null);
+            .FirstOrDefaultAsync(
+                l =>
+                    l.ItemId == item.Id &&
+                    l.ReturnDate == null);
 
         model.Loan = loan;
 
@@ -274,66 +302,71 @@ public class KioskController : Controller
     public async Task<IActionResult> ConfirmReturn(
         string libraryCode)
     {
-        if (string.IsNullOrWhiteSpace(libraryCode))
+        if (string.IsNullOrWhiteSpace(
+            libraryCode))
         {
             TempData["KioskReturnError"] =
                 "A library code is required.";
 
-            return RedirectToAction(nameof(Return));
+            return RedirectToAction(
+                nameof(Return));
         }
 
         var item = await _context.Items
             .FirstOrDefaultAsync(
-                i => i.LibraryCode == libraryCode);
+                i => i.LibraryCode ==
+                     libraryCode);
 
         if (item == null)
         {
             TempData["KioskReturnError"] =
                 "The item could not be found.";
 
-            return RedirectToAction(nameof(Return));
+            return RedirectToAction(
+                nameof(Return));
         }
 
         var loan = await _context.Loans
             .Include(l => l.Borrower)
             .Include(l => l.Item)
-            .FirstOrDefaultAsync(l =>
-                l.ItemId == item.Id &&
-                l.ReturnDate == null);
+            .FirstOrDefaultAsync(
+                l =>
+                    l.ItemId == item.Id &&
+                    l.ReturnDate == null);
 
         if (loan == null)
         {
             TempData["KioskReturnError"] =
                 "No active loan was found for this item.";
 
-            return RedirectToAction(nameof(Return));
+            return RedirectToAction(
+                nameof(Return));
         }
 
-        // Record the return.
         loan.ReturnDate = DateTime.Now;
 
         loan.IsOverdue =
-            loan.ReturnDate.Value.Date > loan.DueDate.Date;
+            loan.ReturnDate.Value.Date >
+            loan.DueDate.Date;
 
-        // Reuse the existing fine calculator.
         loan.FineAmount =
-            await _fineCalculator.CalculateFineAsync(loan);
+            await _fineCalculator
+                .CalculateFineAsync(loan);
 
-        // Fine remains unpaid until payment is completed.
-        loan.FinePaid = loan.FineAmount <= 0;
+        // Fine is considered paid automatically only
+        // when there is no fine.
+        loan.FinePaid =
+            loan.FineAmount <= 0;
 
-        // A kiosk cannot perform a physical condition inspection,
-        // so the item returns to available circulation.
-        item.Status = ItemStatus.Available;
+        item.Status =
+            ItemStatus.Available;
 
         await _context.SaveChangesAsync();
 
-        // Recheck borrower eligibility after the return/fine update.
         await _borrowerEligibilityService
             .CheckAndUpdateSuspensionAsync(
                 loan.BorrowerId);
 
-        // Write an audit log entry.
         await _auditService.LogAsync(
             "Kiosk Return",
             "Loan",
@@ -341,20 +374,198 @@ public class KioskController : Controller
             $"{item.Name} ({item.LibraryCode}) returned through " +
             $"the self-service kiosk by {loan.Borrower?.FullName}. " +
             $"Fine: ${loan.FineAmount:F2}.",
-            loan.Borrower?.LibraryCardNumber ?? "Self-Service Kiosk");
+            loan.Borrower?.LibraryCardNumber
+                ?? "Self-Service Kiosk");
 
-        var model = new KioskReturnViewModel
+        // If money is owed, remember which loan is
+        // allowed to be paid from this kiosk session.
+        if (loan.FineAmount > 0 &&
+            !loan.FinePaid)
         {
-            LibraryCode = item.LibraryCode,
-            Item = item,
-            Loan = loan,
-            ItemScanned = true,
-            ReturnCompleted = true,
-            ReturnDate = loan.ReturnDate,
-            FineAmount = loan.FineAmount
-        };
+            HttpContext.Session.SetInt32(
+                KioskFineLoanSessionKey,
+                loan.Id);
+        }
+        else
+        {
+            HttpContext.Session.Remove(
+                KioskFineLoanSessionKey);
+        }
 
-        return View("Return", model);
+        var model =
+            new KioskReturnViewModel
+            {
+                LibraryCode =
+                    item.LibraryCode,
+
+                Item = item,
+
+                Loan = loan,
+
+                ItemScanned = true,
+
+                ReturnCompleted = true,
+
+                ReturnDate =
+                    loan.ReturnDate,
+
+                FineAmount =
+                    loan.FineAmount
+            };
+
+        return View(
+            "Return",
+            model);
+    }
+
+    // =========================================================
+    // SQUARE FINE PAYMENT
+    // =========================================================
+
+    // GET: /Kiosk/PayFine?loanId=15
+    [HttpGet]
+    public async Task<IActionResult> PayFine(
+        int loanId)
+    {
+        var allowedLoanId =
+            HttpContext.Session.GetInt32(
+                KioskFineLoanSessionKey);
+
+        if (allowedLoanId == null ||
+            allowedLoanId.Value != loanId)
+        {
+            TempData["KioskReturnError"] =
+                "The fine payment session is no longer available.";
+
+            return RedirectToAction(
+                nameof(Return));
+        }
+
+        var loan = await _context.Loans
+            .AsNoTracking()
+            .Include(l => l.Borrower)
+            .Include(l => l.Item)
+            .FirstOrDefaultAsync(
+                l => l.Id == loanId);
+
+        if (loan == null)
+        {
+            return NotFound();
+        }
+
+        if (loan.FineAmount <= 0)
+        {
+            TempData["KioskReturnError"] =
+                "This loan does not have an outstanding fine.";
+
+            return RedirectToAction(
+                nameof(Return));
+        }
+
+        if (loan.FinePaid)
+        {
+            TempData["KioskReturnError"] =
+                "This fine has already been paid.";
+
+            return RedirectToAction(
+                nameof(Return));
+        }
+
+        var model =
+            BuildFinePaymentViewModel(
+                loan);
+
+        return View(model);
+    }
+
+    // POST: /Kiosk/ProcessFinePayment
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult>
+        ProcessFinePayment(
+            int loanId,
+            string sourceId)
+    {
+        var allowedLoanId =
+            HttpContext.Session.GetInt32(
+                KioskFineLoanSessionKey);
+
+        if (allowedLoanId == null ||
+            allowedLoanId.Value != loanId)
+        {
+            return BadRequest(
+                new
+                {
+                    success = false,
+                    message =
+                        "The payment session has expired."
+                });
+        }
+
+        var result =
+            await _paymentService.PayFineAsync(
+                loanId,
+                sourceId);
+
+        if (!result.Success)
+        {
+            return BadRequest(
+                new
+                {
+                    success = false,
+                    message =
+                        result.ErrorMessage
+                        ?? "Payment failed."
+                });
+        }
+
+        HttpContext.Session.Remove(
+            KioskFineLoanSessionKey);
+
+        return Ok(
+            new
+            {
+                success = true,
+                paymentId =
+                    result.PaymentId
+            });
+    }
+
+    // GET: /Kiosk/PaymentSuccess
+    [HttpGet]
+    public async Task<IActionResult>
+        PaymentSuccess(
+            int loanId,
+            string? paymentId)
+    {
+        var loan = await _context.Loans
+            .AsNoTracking()
+            .Include(l => l.Borrower)
+            .Include(l => l.Item)
+            .FirstOrDefaultAsync(
+                l => l.Id == loanId);
+
+        if (loan == null)
+        {
+            return NotFound();
+        }
+
+        if (!loan.FinePaid)
+        {
+            return RedirectToAction(
+                nameof(Return));
+        }
+
+        var model =
+            BuildFinePaymentViewModel(
+                loan);
+
+        model.PaymentCompleted = true;
+        model.PaymentId = paymentId;
+
+        return View(
+            "PayFine",
+            model);
     }
 
     // =========================================================
@@ -368,14 +579,19 @@ public class KioskController : Controller
         HttpContext.Session.Remove(
             KioskBorrowerSessionKey);
 
-        return RedirectToAction(nameof(Borrower));
+        HttpContext.Session.Remove(
+            KioskFineLoanSessionKey);
+
+        return RedirectToAction(
+            nameof(Borrower));
     }
 
     // =========================================================
     // HELPERS
     // =========================================================
 
-    private async Task<Borrower?> GetVerifiedBorrowerAsync()
+    private async Task<Borrower?>
+        GetVerifiedBorrowerAsync()
     {
         var borrowerId =
             HttpContext.Session.GetInt32(
@@ -386,9 +602,12 @@ public class KioskController : Controller
             return null;
         }
 
-        var borrower = await _context.Borrowers
-            .FirstOrDefaultAsync(
-                b => b.Id == borrowerId.Value);
+        var borrower =
+            await _context.Borrowers
+                .FirstOrDefaultAsync(
+                    b =>
+                        b.Id ==
+                        borrowerId.Value);
 
         if (borrower == null ||
             borrower.IsSuspended)
@@ -400,5 +619,36 @@ public class KioskController : Controller
         }
 
         return borrower;
+    }
+
+    private KioskFinePaymentViewModel
+        BuildFinePaymentViewModel(
+            Loan loan)
+    {
+        return new KioskFinePaymentViewModel
+        {
+            LoanId = loan.Id,
+
+            BorrowerName =
+                loan.Borrower?.FullName
+                ?? "Unknown",
+
+            ItemName =
+                loan.Item?.Name
+                ?? "Unknown",
+
+            LibraryCode =
+                loan.Item?.LibraryCode
+                ?? string.Empty,
+
+            FineAmount =
+                loan.FineAmount,
+
+            SquareApplicationId =
+                _squareSettings.ApplicationId,
+
+            SquareLocationId =
+                _squareSettings.LocationId
+        };
     }
 }

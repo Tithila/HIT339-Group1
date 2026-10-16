@@ -3,6 +3,7 @@ using LibraryManagementSystem.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using LibraryManagementSystem.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,9 @@ builder.Services
 
 builder.Services.AddControllersWithViews();
 
+builder.Services.Configure<SquareSettings>(
+    builder.Configuration.GetSection("Square"));
+
 // Session is used by the self-service kiosk
 // to remember the verified borrower between screens.
 builder.Services.AddSession(options =>
@@ -36,6 +40,7 @@ builder.Services.AddSession(options =>
 builder.Services.AddScoped<IFineCalculator, FineCalculator>();
 builder.Services.AddScoped<IBorrowerEligibilityService, BorrowerEligibilityService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IPaymentService, SquarePaymentService>();
 
 // Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();

@@ -7,6 +7,7 @@
 <div id="kioskPage" class="container py-4">
 
     <div class="text-center mb-4">
+
         <h1 class="fw-bold display-5 mb-3">
             Self-Service Return
         </h1>
@@ -36,9 +37,11 @@
             </button>
 
         </div>
+
     </div>
 
     <div class="row justify-content-center">
+
         <div class="col-lg-8">
 
             @if (TempData["KioskReturnError"] != null)
@@ -51,6 +54,7 @@
             @if (!Model.ReturnCompleted)
             {
                 <div class="card shadow-sm border-0 rounded-4 mb-4">
+
                     <div class="card-body p-4 p-md-5">
 
                         <form asp-action="Return"
@@ -110,6 +114,7 @@
                         </form>
 
                     </div>
+
                 </div>
             }
 
@@ -149,11 +154,13 @@
             @if (Model.Loan != null && !Model.ReturnCompleted)
             {
                 <div class="card shadow-sm border-0 rounded-4 mb-4">
+
                     <div class="card-body p-4 p-md-5">
 
                         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
 
                             <div>
+
                                 <div class="text-muted small">
                                     Item to Return
                                 </div>
@@ -165,6 +172,7 @@
                                 <div class="text-muted">
                                     @Model.Item?.LibraryCode
                                 </div>
+
                             </div>
 
                             <span class="badge bg-primary fs-6 px-3 py-2">
@@ -178,35 +186,51 @@
                         <div class="row g-4">
 
                             <div class="col-md-6">
-                                <strong>Borrower</strong>
+
+                                <strong>
+                                    Borrower
+                                </strong>
 
                                 <div class="text-muted">
                                     @(Model.Loan.Borrower?.FullName ?? "Unknown")
                                 </div>
+
                             </div>
 
                             <div class="col-md-6">
-                                <strong>Loan ID</strong>
+
+                                <strong>
+                                    Loan ID
+                                </strong>
 
                                 <div class="text-muted">
                                     @Model.Loan.Id
                                 </div>
+
                             </div>
 
                             <div class="col-md-6">
-                                <strong>Borrowed Date</strong>
+
+                                <strong>
+                                    Borrowed Date
+                                </strong>
 
                                 <div class="text-muted">
                                     @Model.Loan.BorrowDate.ToString("dd/MM/yyyy")
                                 </div>
+
                             </div>
 
                             <div class="col-md-6">
-                                <strong>Due Date</strong>
+
+                                <strong>
+                                    Due Date
+                                </strong>
 
                                 <div class="text-muted">
                                     @Model.Loan.DueDate.ToString("dd/MM/yyyy")
                                 </div>
+
                             </div>
 
                         </div>
@@ -252,10 +276,13 @@
                         </form>
 
                     </div>
+
                 </div>
             }
 
-            @if (Model.ReturnCompleted && Model.Item != null && Model.Loan != null)
+            @if (Model.ReturnCompleted &&
+                 Model.Item != null &&
+                 Model.Loan != null)
             {
                 <div class="card shadow-sm border-0 rounded-4">
 
@@ -282,39 +309,57 @@
                         <div class="row g-4 mt-1">
 
                             <div class="col-md-6">
-                                <strong>Borrower</strong>
+
+                                <strong>
+                                    Borrower
+                                </strong>
 
                                 <div class="text-muted">
                                     @(Model.Loan.Borrower?.FullName ?? "Unknown")
                                 </div>
+
                             </div>
 
                             <div class="col-md-6">
-                                <strong>Loan ID</strong>
+
+                                <strong>
+                                    Loan ID
+                                </strong>
 
                                 <div class="text-muted">
                                     @Model.Loan.Id
                                 </div>
+
                             </div>
 
                             <div class="col-md-6">
-                                <strong>Returned</strong>
+
+                                <strong>
+                                    Returned
+                                </strong>
 
                                 <div class="text-muted">
+
                                     @(Model.ReturnDate.HasValue
                                         ? Model.ReturnDate.Value.ToString("dd/MM/yyyy HH:mm")
                                         : "-")
+
                                 </div>
+
                             </div>
 
                             <div class="col-md-6">
-                                <strong>Item Status</strong>
+
+                                <strong>
+                                    Item Status
+                                </strong>
 
                                 <div>
                                     <span class="badge bg-success">
                                         Available
                                     </span>
                                 </div>
+
                             </div>
 
                         </div>
@@ -326,6 +371,7 @@
                                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
 
                                     <div>
+
                                         <strong class="fs-5">
                                             Outstanding Fine
                                         </strong>
@@ -334,6 +380,7 @@
                                             The item has been returned successfully,
                                             but an overdue fine remains outstanding.
                                         </div>
+
                                     </div>
 
                                     <div class="fw-bold fs-3">
@@ -345,18 +392,35 @@
                             </div>
 
                             <div class="card bg-light border-0 rounded-4 mt-3">
+
                                 <div class="card-body p-4">
 
-                                    <h5 class="fw-bold">
+                                    <h5 class="fw-bold mb-2">
                                         Fine Payment
                                     </h5>
 
-                                    <p class="text-muted mb-0">
-                                        Secure kiosk payment will be available through
-                                        the Square payment integration.
+                                    <p class="text-muted mb-4">
+                                        Pay securely using the Square Sandbox payment system.
+                                        No real money will be charged while testing.
                                     </p>
 
+                                    <div class="d-grid gap-2">
+
+                                        <a asp-action="PayFine"
+                                           asp-route-loanId="@Model.Loan.Id"
+                                           class="btn btn-success btn-lg">
+                                            Pay $@Model.FineAmount.ToString("F2") Now
+                                        </a>
+
+                                        <a asp-action="Return"
+                                           class="btn btn-outline-secondary">
+                                            Pay Later
+                                        </a>
+
+                                    </div>
+
                                 </div>
+
                             </div>
                         }
                         else
@@ -394,6 +458,7 @@
             }
 
         </div>
+
     </div>
 
 </div>
@@ -437,7 +502,9 @@
         async function startReturnCameraScanner() {
 
             const reader =
-                document.getElementById('returnReader');
+                document.getElementById(
+                    'returnReader'
+                );
 
             const stopButton =
                 document.getElementById(
@@ -476,11 +543,13 @@
                     cameras[0].id,
                     {
                         fps: 10,
+
                         qrbox: {
                             width: 250,
                             height: 200
                         }
                     },
+
                     onReturnScanSuccess,
                     onReturnScanFailure
                 );
@@ -592,7 +661,7 @@
 
         document.addEventListener(
             'DOMContentLoaded',
-            function() {
+            function () {
 
                 const savedMode =
                     localStorage.getItem(

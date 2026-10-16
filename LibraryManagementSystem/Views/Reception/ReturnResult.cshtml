@@ -1,0 +1,183 @@
+﻿@model LibraryManagementSystem.Models.ReceptionReturnResultViewModel
+
+@{
+    ViewData["Title"] = "Return Result";
+}
+
+<div class="container py-4">
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm border-0 rounded-4">
+
+                <div class="card-body p-4 p-md-5">
+
+                    <div class="text-center mb-4">
+
+                        <span class="badge bg-success fs-5 px-4 py-2">
+                            Return Successful
+                        </span>
+
+                        <h1 class="fw-bold mt-4 mb-2">
+                            @Model.ItemName
+                        </h1>
+
+                        <div class="text-muted">
+                            @Model.LibraryCode
+                        </div>
+
+                    </div>
+
+                    <hr />
+
+                    <div class="row g-4 mt-1">
+
+                        <div class="col-md-6">
+                            <strong>Borrower</strong>
+                            <div class="text-muted">
+                                @Model.BorrowerName
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <strong>Loan ID</strong>
+                            <div class="text-muted">
+                                @Model.LoanId
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <strong>Condition</strong>
+                            <div class="text-muted">
+                                @Model.Condition
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <strong>Returned</strong>
+                            <div class="text-muted">
+                                @Model.ReturnDate.ToString("dd/MM/yyyy HH:mm")
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <strong>Repair Cost</strong>
+                            <div class="text-muted">
+                                $@Model.RepairCost.ToString("F2")
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <strong>Replacement Cost</strong>
+                            <div class="text-muted">
+                                $@Model.ReplacementCost.ToString("F2")
+                            </div>
+                        </div>
+
+                    </div>
+
+                    @if (Model.FineAmount > 0)
+                    {
+                        <div class="alert alert-warning mt-4">
+
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                                <div>
+                                    <strong class="fs-5">
+                                        Outstanding Fine
+                                    </strong>
+
+                                    <div class="mt-1">
+                                        This return has generated an overdue fine.
+                                    </div>
+                                </div>
+
+                                <div class="fw-bold fs-3">
+                                    $@Model.FineAmount.ToString("F2")
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="card bg-light border-0 rounded-4 mt-3">
+
+                            <div class="card-body p-4">
+
+                                <h5 class="fw-bold mb-3">
+                                    Payment Options
+                                </h5>
+
+                                <div class="d-grid gap-2">
+
+                                    <a asp-action="PayFineSquare"
+                                       asp-route-id="@Model.LoanId"
+                                       class="btn btn-primary btn-lg">
+                                        Pay with Square
+                                    </a>
+
+                                    <form asp-action="PayFine"
+                                          method="post">
+
+                                        <input type="hidden"
+                                               name="loanId"
+                                               value="@Model.LoanId" />
+
+                                        <button type="submit"
+                                                class="btn btn-outline-primary btn-lg w-100"
+                                                onclick="return confirm('Record this fine as paid manually?');">
+                                            Record Manual Payment
+                                        </button>
+
+                                    </form>
+
+                                    <a asp-action="Return"
+                                       class="btn btn-outline-secondary btn-lg">
+                                        Pay Later
+                                    </a>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-success mt-4">
+
+                            <strong>
+                                No fine is payable.
+                            </strong>
+
+                            <div class="mt-1">
+                                This return was completed without an outstanding overdue fine.
+                            </div>
+
+                        </div>
+                    }
+
+                    <div class="mt-4 d-grid gap-2">
+
+                        <a asp-action="Return"
+                           class="btn btn-primary btn-lg">
+                            Return Another Item
+                        </a>
+
+                        <a asp-controller="Home"
+                           asp-action="Index"
+                           class="btn btn-outline-secondary btn-lg">
+                            Back to Home
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
