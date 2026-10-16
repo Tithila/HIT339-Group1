@@ -1,10 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿
+using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace LibraryManagementSystem.Models;
 
 [Index(nameof(LibraryCode), IsUnique = true)]
-
 public class Item
 {
     public int Id { get; set; }
@@ -23,6 +23,13 @@ public class Item
 
     [Required]
     public ItemStatus Status { get; set; } = ItemStatus.Available;
+
+    // The physical library branch where this item is located.
+    // Nullable temporarily to preserve existing library records.
+    public int? BranchId { get; set; }
+
+    // Navigation property linking the item to its branch.
+    public Branch? Branch { get; set; }
 }
 
 public enum ItemStatus

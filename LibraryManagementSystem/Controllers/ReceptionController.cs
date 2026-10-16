@@ -16,6 +16,7 @@ public class ReceptionController : Controller
     private readonly IFineCalculator _fineCalculator;
     private readonly IBorrowerEligibilityService _borrowerEligibilityService;
     private readonly IAuditService _auditService;
+    private readonly INotificationService _notificationService;
     private readonly IPaymentService _paymentService;
     private readonly SquareSettings _squareSettings;
 
@@ -24,6 +25,7 @@ public class ReceptionController : Controller
         IFineCalculator fineCalculator,
         IBorrowerEligibilityService borrowerEligibilityService,
         IAuditService auditService,
+        INotificationService notificationService,
         IPaymentService paymentService,
         IOptions<SquareSettings> squareOptions)
     {
@@ -31,6 +33,7 @@ public class ReceptionController : Controller
         _fineCalculator = fineCalculator;
         _borrowerEligibilityService = borrowerEligibilityService;
         _auditService = auditService;
+        _notificationService = notificationService;
         _paymentService = paymentService;
         _squareSettings = squareOptions.Value;
     }
@@ -93,6 +96,24 @@ public class ReceptionController : Controller
             return View(model);
         }
 
+        // Prevent normal checkout when the item
+        // is currently being held for a reservation.
+        var reservedForPickup =
+            await _context.Reservations
+                .AnyAsync(r =>
+                    r.ItemId == item.Id &&
+                    r.Status ==
+                        ReservationStatus.ReadyForPickup);
+
+        if (reservedForPickup)
+        {
+            ModelState.AddModelError(
+                nameof(model.LibraryCode),
+                "This item is reserved for pickup and cannot be borrowed through the normal checkout process.");
+
+            return View(model);
+        }
+
         var borrower = await _context.Borrowers
             .FirstOrDefaultAsync(
                 b => b.Id == model.BorrowerId);
@@ -138,6 +159,26 @@ public class ReceptionController : Controller
             loan.Id,
             $"{item.Name} ({item.LibraryCode}) borrowed by {borrower.FullName}",
             User.Identity?.Name);
+
+        // Borrow notification.
+        // Notification failure must not undo the loan.
+        try
+        {
+            await _notificationService.SendAsync(
+                borrower.Id,
+                borrower.Email,
+                NotificationChannel.Email,
+                NotificationType.Borrowed,
+                $"Hello {borrower.FullName}, " +
+                $"you borrowed '{item.Name}' " +
+                $"({item.LibraryCode}). " +
+                $"Your due date is {loan.DueDate:dd MMM yyyy}.");
+        }
+        catch (Exception)
+        {
+            TempData["NotificationWarning"] =
+                "The item was borrowed successfully, but the notification could not be recorded.";
+        }
 
         TempData["SuccessMessage"] =
             $"{item.Name} has been borrowed by {borrower.FullName}.";
@@ -206,9 +247,12 @@ public class ReceptionController : Controller
             await _fineCalculator
                 .CalculateFineAsync(loan);
 
+        // No outstanding payment exists when
+        // the calculated fine is zero.
         loan.FinePaid =
             loan.FineAmount <= 0;
 
+        // Reception staff inspect the physical item.
         item.Status = model.Condition switch
         {
             ItemConditionResult.Good =>
@@ -234,7 +278,8 @@ public class ReceptionController : Controller
             InspectionDate = DateTime.Now
         };
 
-        _context.ReturnInspections.Add(inspection);
+        _context.ReturnInspections.Add(
+            inspection);
 
         await _context.SaveChangesAsync();
 
@@ -254,10 +299,37 @@ public class ReceptionController : Controller
             $"Replacement Cost: ${model.ReplacementCost:F2}.",
             User.Identity?.Name);
 
+        // Fine notification.
+        // Notification failure must not undo the return.
+        if (loan.FineAmount > 0 &&
+            loan.Borrower != null)
+        {
+            try
+            {
+                await _notificationService.SendAsync(
+                    loan.BorrowerId,
+                    loan.Borrower.Email,
+                    NotificationChannel.Email,
+                    NotificationType.Fine,
+                    $"Hello {loan.Borrower.FullName}, " +
+                    $"your returned library item '{item.Name}' " +
+                    $"has an outstanding fine of " +
+                    $"${loan.FineAmount:F2}.");
+            }
+            catch (Exception)
+            {
+                TempData["NotificationWarning"] =
+                    "The return was processed, but the fine notification could not be recorded.";
+            }
+        }
+
+        // Show a result screen immediately so Reception
+        // can handle any fine without navigating elsewhere.
         var resultModel =
             new ReceptionReturnResultViewModel
             {
-                LoanId = loan.Id,
+                LoanId =
+                    loan.Id,
 
                 BorrowerName =
                     loan.Borrower?.FullName
@@ -304,11 +376,13 @@ public class ReceptionController : Controller
                 l =>
                     l.FineAmount > 0 &&
                     !l.FinePaid)
-            .OrderByDescending(l => l.ReturnDate)
+            .OrderByDescending(
+                l => l.ReturnDate)
             .Select(
                 l => new FinePaymentViewModel
                 {
-                    LoanId = l.Id,
+                    LoanId =
+                        l.Id,
 
                     BorrowerName =
                         l.Borrower != null
@@ -362,7 +436,8 @@ public class ReceptionController : Controller
             TempData["ErrorMessage"] =
                 "This loan does not have an outstanding fine.";
 
-            return RedirectToAction(nameof(Fines));
+            return RedirectToAction(
+                nameof(Fines));
         }
 
         if (loan.FinePaid)
@@ -370,7 +445,8 @@ public class ReceptionController : Controller
             TempData["ErrorMessage"] =
                 "This fine has already been paid.";
 
-            return RedirectToAction(nameof(Fines));
+            return RedirectToAction(
+                nameof(Fines));
         }
 
         var model =
@@ -383,9 +459,10 @@ public class ReceptionController : Controller
     // POST: Reception/ProcessSquareFinePayment
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ProcessSquareFinePayment(
-        int loanId,
-        string sourceId)
+    public async Task<IActionResult>
+        ProcessSquareFinePayment(
+            int loanId,
+            string sourceId)
     {
         var result =
             await _paymentService.PayFineAsync(
@@ -417,9 +494,10 @@ public class ReceptionController : Controller
 
     // GET: Reception/SquarePaymentSuccess
     [HttpGet]
-    public async Task<IActionResult> SquarePaymentSuccess(
-        int loanId,
-        string? paymentId)
+    public async Task<IActionResult>
+        SquarePaymentSuccess(
+            int loanId,
+            string? paymentId)
     {
         var loan = await _context.Loans
             .AsNoTracking()
@@ -438,15 +516,19 @@ public class ReceptionController : Controller
             TempData["ErrorMessage"] =
                 "Payment has not been confirmed.";
 
-            return RedirectToAction(nameof(Fines));
+            return RedirectToAction(
+                nameof(Fines));
         }
 
         var model =
             BuildReceptionFinePaymentViewModel(
                 loan);
 
-        model.PaymentCompleted = true;
-        model.PaymentId = paymentId;
+        model.PaymentCompleted =
+            true;
+
+        model.PaymentId =
+            paymentId;
 
         return View(
             "PayFineSquare",
@@ -479,7 +561,8 @@ public class ReceptionController : Controller
             TempData["ErrorMessage"] =
                 "This loan does not have an outstanding fine.";
 
-            return RedirectToAction(nameof(Fines));
+            return RedirectToAction(
+                nameof(Fines));
         }
 
         if (loan.FinePaid)
@@ -487,7 +570,8 @@ public class ReceptionController : Controller
             TempData["ErrorMessage"] =
                 "This fine has already been paid.";
 
-            return RedirectToAction(nameof(Fines));
+            return RedirectToAction(
+                nameof(Fines));
         }
 
         loan.FinePaid = true;
@@ -510,7 +594,8 @@ public class ReceptionController : Controller
         TempData["SuccessMessage"] =
             $"Fine of ${loan.FineAmount:F2} has been recorded as paid.";
 
-        return RedirectToAction(nameof(Fines));
+        return RedirectToAction(
+            nameof(Fines));
     }
 
     // =========================================================

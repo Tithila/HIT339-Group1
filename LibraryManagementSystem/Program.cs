@@ -1,21 +1,40 @@
 using LibraryManagementSystem.Data;
+using LibraryManagementSystem.Models;
 using LibraryManagementSystem.Services;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.UI.Services;
-using LibraryManagementSystem.Models;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+// =========================================================
+// DATABASE
+// =========================================================
+
+var connectionString = builder.Configuration
+    .GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(
         "Connection string 'DefaultConnection' not found.");
 
+// SQL Server configuration with retry support.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(
+        connectionString,
+        sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 3,
+                maxRetryDelay: TimeSpan.FromSeconds(5),
+                errorNumbersToAdd: null);
+
+            sqlOptions.CommandTimeout(120);
+        }));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+// =========================================================
+// IDENTITY / AUTHENTICATION
+// =========================================================
 
 builder.Services
     .AddDefaultIdentity<IdentityUser>(options =>
@@ -23,13 +42,27 @@ builder.Services
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
+// =========================================================
+// MVC
+// =========================================================
+
 builder.Services.AddControllersWithViews();
 
+// =========================================================
+// SQUARE CONFIGURATION
+// =========================================================
+
+// Reads Square credentials from User Secrets/configuration.
+// AccessToken remains server-side only.
 builder.Services.Configure<SquareSettings>(
     builder.Configuration.GetSection("Square"));
 
-// Session is used by the self-service kiosk
-// to remember the verified borrower between screens.
+// =========================================================
+// SESSION
+// =========================================================
+
+// Used by the self-service kiosk to remember
+// the verified borrower and payment session.
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(10);
@@ -37,38 +70,119 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-builder.Services.AddScoped<IFineCalculator, FineCalculator>();
-builder.Services.AddScoped<IBorrowerEligibilityService, BorrowerEligibilityService>();
-builder.Services.AddScoped<IAuditService, AuditService>();
-builder.Services.AddScoped<IPaymentService, SquarePaymentService>();
+// =========================================================
+// CORE LIBRARY SERVICES
+// =========================================================
 
-// Swagger / OpenAPI
+builder.Services.AddScoped<
+    IFineCalculator,
+    FineCalculator>();
+
+builder.Services.AddScoped<
+    IBorrowerEligibilityService,
+    BorrowerEligibilityService>();
+
+builder.Services.AddScoped<
+    IAuditService,
+    AuditService>();
+
+// =========================================================
+// SQUARE PAYMENT SERVICE
+// =========================================================
+
+builder.Services.AddScoped<
+    IPaymentService,
+    SquarePaymentService>();
+
+// =========================================================
+// MULTI-BRANCH INVENTORY
+// =========================================================
+
+builder.Services.AddScoped<
+    ITransferService,
+    TransferService>();
+
+// =========================================================
+// AUTOMATED NOTIFICATIONS
+// =========================================================
+
+builder.Services.AddScoped<
+    INotificationService,
+    NotificationService>();
+
+// =========================================================
+// RESERVATIONS / WAITLIST
+// =========================================================
+
+builder.Services.AddScoped<
+    IReservationService,
+    ReservationService>();
+
+// =========================================================
+// API / SWAGGER
+// =========================================================
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddHostedService<OverdueProcessingService>();
+// =========================================================
+// BACKGROUND PROCESSING
+// =========================================================
 
-builder.Services.AddTransient<IEmailSender, DevelopmentEmailSender>();
-builder.Services.AddTransient<IEmailSender<IdentityUser>, DevelopmentEmailSender>();
+builder.Services.AddHostedService<
+    OverdueProcessingService>();
+
+// =========================================================
+// EMAIL
+// =========================================================
+
+builder.Services.AddTransient<
+    IEmailSender,
+    DevelopmentEmailSender>();
+
+builder.Services.AddTransient<
+    IEmailSender<IdentityUser>,
+    DevelopmentEmailSender>();
 
 var app = builder.Build();
 
-// Create roles and seed library data automatically
-// when the application starts.
+// =========================================================
+// DATABASE MIGRATIONS + SEEDING
+// =========================================================
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
 
-    await RoleSeeder.SeedRolesAsync(services);
-    await IdentitySeeder.SeedUsersAsync(services);
-
     var context =
         services.GetRequiredService<ApplicationDbContext>();
 
-    await LibraryDataSeeder.SeedAsync(context);
+    try
+    {
+        // Apply migrations from all merged features.
+        await context.Database.MigrateAsync();
+
+        // Create application roles and test users.
+        await RoleSeeder.SeedRolesAsync(services);
+        await IdentitySeeder.SeedUsersAsync(services);
+
+        // Seed library data.
+        await LibraryDataSeeder.SeedAsync(context);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(
+            ex,
+            "Database initialization failed during application startup.");
+
+        throw;
+    }
 }
 
-// Configure the HTTP request pipeline.
+// =========================================================
+// HTTP PIPELINE
+// =========================================================
+
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
@@ -86,18 +200,20 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
-// Session must be enabled after routing
-// and before controller actions use HttpContext.Session.
+// Kiosk session must be enabled before
+// controller actions access HttpContext.Session.
 app.UseSession();
 
+// Identity middleware.
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
 
-// Attribute-routed API controllers
+// Attribute-routed API controllers.
 app.MapControllers();
 
-// Standard MVC routes
+// Standard MVC routes.
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")

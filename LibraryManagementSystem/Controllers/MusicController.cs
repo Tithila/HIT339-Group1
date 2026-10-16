@@ -1,8 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using LibraryManagementSystem.Models;
+
 using LibraryManagementSystem.Data;
+using LibraryManagementSystem.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 
 [Authorize(Roles = "Admin")]
 public class MusicController : Controller
@@ -14,13 +16,43 @@ public class MusicController : Controller
         _context = context;
     }
 
-    // GET: MUSIC
-    public async Task<IActionResult> Index()
+    // Load branches for the Create form
+    private async Task LoadBranchesAsync()
     {
-        return View(await _context.MusicItems.ToListAsync());
+        var branches = await _context.Branches
+            .AsNoTracking()
+            .OrderBy(b => b.Name)
+            .ToListAsync();
+
+        ViewBag.Branches = new SelectList(
+            branches, "Id", "Name");
     }
 
-    // GET: MUSIC/Details/5
+    // Validate the selected branch
+    private async Task ValidateBranchAsync(int? branchId)
+    {
+        if (!branchId.HasValue ||
+            !await _context.Branches.AnyAsync(
+                b => b.Id == branchId.Value))
+        {
+            ModelState.AddModelError(
+                "BranchId",
+                "Please select a valid library branch.");
+        }
+    }
+
+    // GET: Music
+    public async Task<IActionResult> Index()
+    {
+        var musicItems = await _context.MusicItems
+            .Include(m => m.Branch)
+            .AsNoTracking()
+            .ToListAsync();
+
+        return View(musicItems);
+    }
+
+    // GET: Music/Details/5
     public async Task<IActionResult> Details(int? id)
     {
         if (id == null)
@@ -29,6 +61,8 @@ public class MusicController : Controller
         }
 
         var music = await _context.MusicItems
+            .Include(m => m.Branch)
+            .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (music == null)
@@ -39,17 +73,20 @@ public class MusicController : Controller
         return View(music);
     }
 
-    // GET: MUSIC/Create
-    public IActionResult Create()
+    // GET: Music/Create
+    public async Task<IActionResult> Create()
     {
+        await LoadBranchesAsync();
+
         return View();
     }
 
-    // POST: MUSIC/Create
+    // POST: Music/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(
-        [Bind("Artist,Year,Id,Name,Description,LibraryCode,Status")] Music music)
+        [Bind("Artist,Year,Name,Description,LibraryCode,Status,BranchId")]
+        Music music)
     {
         if (await _context.Items.AnyAsync(i =>
             i.LibraryCode == music.LibraryCode))
@@ -59,18 +96,23 @@ public class MusicController : Controller
                 "This library code already exists. Please use a unique code.");
         }
 
+        await ValidateBranchAsync(music.BranchId);
+
         if (ModelState.IsValid)
         {
-            _context.Add(music);
+            _context.MusicItems.Add(music);
+
             await _context.SaveChangesAsync();
 
             return RedirectToAction(nameof(Index));
         }
 
+        await LoadBranchesAsync();
+
         return View(music);
     }
 
-    // GET: MUSIC/Edit/5
+    // GET: Music/Edit/5
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null)
@@ -78,69 +120,9 @@ public class MusicController : Controller
             return NotFound();
         }
 
-        var music = await _context.MusicItems.FindAsync(id);
-
-        if (music == null)
-        {
-            return NotFound();
-        }
-
-        return View(music);
-    }
-
-    // POST: MUSIC/Edit/5
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(
-        int? id,
-        [Bind("Artist,Year,Id,Name,Description,LibraryCode,Status")] Music music)
-    {
-        if (id != music.Id)
-        {
-            return NotFound();
-        }
-
-        if (await _context.Items.AnyAsync(i =>
-            i.LibraryCode == music.LibraryCode &&
-            i.Id != music.Id))
-        {
-            ModelState.AddModelError(
-                "LibraryCode",
-                "This library code already exists. Please use a unique code.");
-        }
-
-        if (ModelState.IsValid)
-        {
-            try
-            {
-                _context.Update(music);
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!MusicExists(music.Id))
-                {
-                    return NotFound();
-                }
-
-                throw;
-            }
-
-            return RedirectToAction(nameof(Index));
-        }
-
-        return View(music);
-    }
-
-    // GET: MUSIC/Delete/5
-    public async Task<IActionResult> Delete(int? id)
-    {
-        if (id == null)
-        {
-            return NotFound();
-        }
-
         var music = await _context.MusicItems
+            .Include(m => m.Branch)
+            .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == id);
 
         if (music == null)
@@ -151,25 +133,111 @@ public class MusicController : Controller
         return View(music);
     }
 
-    // POST: MUSIC/Delete/5
+    // POST: Music/Edit/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(
+        int? id,
+        [Bind("Id,Artist,Year,Name,Description,LibraryCode,Status")]
+        Music input)
+    {
+        if (id == null || id != input.Id)
+        {
+            return NotFound();
+        }
+
+        var music = await _context.MusicItems
+            .FindAsync(id);
+
+        if (music == null)
+        {
+            return NotFound();
+        }
+
+        if (await _context.Items.AnyAsync(i =>
+            i.LibraryCode == input.LibraryCode &&
+            i.Id != input.Id))
+        {
+            ModelState.AddModelError(
+                "LibraryCode",
+                "This library code already exists. Please use a unique code.");
+        }
+
+        // BranchId is intentionally not editable here.
+        // Existing items must move through the transfer workflow.
+
+        if (ModelState.IsValid)
+        {
+            music.Artist = input.Artist;
+            music.Year = input.Year;
+            music.Name = input.Name;
+            music.Description = input.Description;
+            music.LibraryCode = input.LibraryCode;
+            music.Status = input.Status;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+
+                return RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!await _context.MusicItems
+                    .AnyAsync(m => m.Id == input.Id))
+                {
+                    return NotFound();
+                }
+
+                throw;
+            }
+        }
+
+        // Preserve the current branch for the Edit view.
+        input.BranchId = music.BranchId;
+        input.Branch = await _context.Branches
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == music.BranchId);
+
+        return View(input);
+    }
+
+    // GET: Music/Delete/5
+    public async Task<IActionResult> Delete(int? id)
+    {
+        if (id == null)
+        {
+            return NotFound();
+        }
+
+        var music = await _context.MusicItems
+            .Include(m => m.Branch)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == id);
+
+        if (music == null)
+        {
+            return NotFound();
+        }
+
+        return View(music);
+    }
+
+    // POST: Music/Delete/5
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int? id)
     {
-        var music = await _context.MusicItems.FindAsync(id);
+        var music = await _context.MusicItems
+            .FindAsync(id);
 
         if (music != null)
         {
             _context.MusicItems.Remove(music);
+
+            await _context.SaveChangesAsync();
         }
 
-        await _context.SaveChangesAsync();
-
         return RedirectToAction(nameof(Index));
-    }
-
-    private bool MusicExists(int? id)
-    {
-        return _context.MusicItems.Any(e => e.Id == id);
     }
 }
